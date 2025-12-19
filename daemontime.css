@@ -1,0 +1,146 @@
+#top {
+  text-align: center;
+}
+
+body {
+  background-color: lightcyan;
+  font-family: "Courier New", monospace;
+}
+
+#loginOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+button,
+input {
+  border-radius: 0px;
+}
+
+.signinButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+#guestButton,
+#startLoginButton,
+#startSignupButton,
+#loginBackButton,
+#loginSubmitButton,
+#signupBackButton,
+#signupSubmitButton {
+  background-color: white;
+  color: black;
+}
+
+#guestButton:hover,
+#startLoginButton:hover,
+#startSignupButton:hover,
+#loginBackButton:hover,
+#loginSubmitButton:hover,
+#signupBackButton:hover,
+#signupSubmitButton:hover {
+  background-color: black;
+  color: white;
+}
+
+#signInUpError {
+  display: none;
+  color: red;
+}
+
+#loginForm,
+#signupForm {
+  display: none;
+}
+
+#game {
+  display: none;
+}
+
+#gameBox {
+  background-color: black;
+  border-bottom: 2px solid red;
+  color: white;
+  width: 700px;
+  height: 314px;
+  margin: auto;
+  overflow-y: auto;
+}
+
+#newGame {
+  background-color: white;
+}
+#newGame:hover {
+  border: 2px solid green;
+  background-color: green;
+  color: white;
+}
+
+#newGameOfficial {
+  display: none;
+}
+
+#currentGamesTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#currentGamesTable td {
+  text-align: center;
+  border: 1px solid white;
+}
+
+.joinGameButton {
+  border: 1px solid white;
+  background-color: white;
+}
+
+#leaveGameButton {
+  background-color: white;
+  display: none;
+}
+
+#startGameButton {
+  background-color: white;
+  display: none;
+}
+
+#startedGame {
+  display: none;
+}
+
+#messageBox {
+  background-color: black;
+  display: flex;
+  flex-direction: column;
+  color: white;
+  width: 700px;
+  height: 141px;
+  margin: auto;
+}
+
+#lobbyMessages {
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 85%;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+#lobbyMessageForm {
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 15%;
+}
+
+#gameQuestion {
+  font-size: 15px;
+}
+#answerForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
