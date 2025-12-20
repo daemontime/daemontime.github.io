@@ -8,6 +8,10 @@ const supabaseClient = supabase.createClient(supabaseURL, supabaseKey);
 let currentUser = null;
 let userHandle = null;
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 document.getElementById("guestButton").addEventListener("click", async () => {
   const { data, error } = await supabaseClient.auth.signInAnonymously();
   if (!error) {
@@ -348,6 +352,7 @@ document
           .eq("game_id", gameID);
       }
     }
+    wait(500);
     showCurrentGames();
     document.getElementById("lobby").style.display = "block";
   });
@@ -433,9 +438,6 @@ async function startGame(row) {
   }
   let scores = [];
 
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
   async function showScore() {
     let scoresDisplay = "<div>";
     scores.sort((a, b) => b[1] - a[1]);
@@ -556,6 +558,7 @@ async function startGame(row) {
   }
   await wait(1500);
 
+  let index = 0;
   document.getElementById("gameQuestion").innerHTML =
     "<div>" +
     "<b><i><u>Question " +
@@ -572,7 +575,6 @@ async function startGame(row) {
   document.getElementById("forwardArrowQuestionButton").style.display = "block";
   document.getElementById("backArrowQuestionButton").style.display = "block";
 
-  let index = 0;
   document
     .getElementById("forwardArrowQuestionButton")
     .addEventListener("click", async () => {
