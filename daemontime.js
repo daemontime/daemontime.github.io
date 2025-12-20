@@ -283,8 +283,6 @@ document.addEventListener("click", async (event) => {
       .from("profiles")
       .update({ in_game: event.target.id })
       .eq("uuid", currentUser.id);
-    console.log("update error?");
-    console.log(error4);
     joinGame(event.target.id);
   }
 });
@@ -301,6 +299,7 @@ document
   .addEventListener("click", async () => {
     document.getElementById("inGame").style.display = "none";
     document.getElementById("gameQuestion").style.display = "none";
+    document.getElementById("leaveGameButton").innerHTML = "<div></div>";
     document.getElementById("leaveGameButton").style.display = "none";
     document.getElementById("startGameButton").style.display = "none";
     document.getElementById("forwardArrowQuestionButton").style.display =
@@ -310,7 +309,6 @@ document
       .from("profiles")
       .select("in_game")
       .eq("uuid", currentUser.id);
-    console.log(data + "leavr game");
     const gameID = data[0].in_game;
     const { data: data2, error: error2 } = await supabaseClient
       .from("profiles")
@@ -369,9 +367,6 @@ async function joinGame(gameID) {
       },
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
-        console.log("payload:");
-        console.log(payload);
-        console.log(payload.payload);
         startGame(payload.payload.row);
       }
     )
@@ -400,14 +395,10 @@ async function joinGame(gameID) {
         checkInGameChannel.send({
           type: "broadcast",
           event: "game_start" + gameID,
-          payload: { row: data2[0] },
+          payload: { row: data3[0] },
         });
         document.getElementById("startGameButton").style.display = "none";
         supabaseClient.removeChannel(checkInGameChannel);
-        if (error2) console.log(error3);
-        console.log("start host row?");
-        console.log(data3);
-        console.log(data3[0].host_id);
         startGame(data3[0]);
       }
     });
@@ -415,7 +406,6 @@ async function joinGame(gameID) {
 
 async function startGame(row) {
   document.getElementById("startedGame").style.display = "block";
-  console.log("row" + row);
   const gameID = row.game_id;
   function waitForInput(ms, timestamp, answer) {
     return new Promise((resolve) => {
@@ -519,13 +509,16 @@ async function startGame(row) {
       getAnswerArr
     ); // ms to s, +1 to account for time to call backend
     document.getElementById("answerForm").style.display = "none";
-    document.getElementById("gameQuestion").style.display = "none";
+    document.getElementById("gameQuestion").innerHTML =
+      "<div>Waiting for others...</div>";
     const timeSpent = timestamp[1] - timestamp[0];
     let answer = "";
     if (result == "submitted") {
       answer = getAnswerArr[0];
-      if (answer == questionRow.answer)
+      if (answer == questionRow.answer) {
         score += 1.2 * row.time_limit - timeSpent / 1000;
+        score = Math.round(score * 1000) / 1000; // round to nearest thousandth
+      }
     }
     answerArr.push(answer);
     let last = false;
@@ -553,11 +546,9 @@ async function startGame(row) {
       .from("profiles")
       .select("rating")
       .eq("handle", scores[i][0]);
-    console.log(data[0]);
     ratings.push(data[0]);
   }
   await wait(1500);
-
   let index = 0;
   document.getElementById("gameQuestion").innerHTML =
     "<div>" +
