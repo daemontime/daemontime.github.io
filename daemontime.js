@@ -9,7 +9,6 @@ let currentUser = null;
 let userHandle = null;
 
 document.getElementById("guestButton").addEventListener("click", async () => {
-  console.log("??");
   const { data, error } = await supabaseClient.auth.signInAnonymously();
   if (!error) {
     const {
@@ -27,7 +26,6 @@ document.getElementById("guestButton").addEventListener("click", async () => {
           .select("handle")
           .eq("uuid", currentUser.id);
         userHandle = data[0].handle;
-        console.log("lobby");
         lobby();
         return;
       }
@@ -146,6 +144,7 @@ document.getElementById("newGame").addEventListener("click", async () => {
     .from("currentGames")
     .insert({
       host_id: currentUser.id,
+      host_handle: userHandle,
       number_of_problems: number_of_problems,
       time_limit: time_limit,
       users_in_game: [currentUser.id],
@@ -227,9 +226,15 @@ async function showCurrentGames() {
       if (i * 4 + j < data.length) {
         let row = data[i * 4 + j];
         table += "<td>";
-        table += "Number of players: " + row.users_in_game.length;
+        table += "# players: " + row.users_in_game.length;
+        let hostHandle = row.host_handle;
+        if (hostHandle.length > 10)
+          hostHandle =
+            hostHandle.substring(0, Math.min(10, hostHandle.length - 3)) +
+            "...";
+        table += "<br></br>Host: " + hostHandle;
         if (row.has_started) {
-          table += "<br></br>Game has started";
+          table += "<br></br>Game started";
         } else {
           table +=
             '<br></br><button class="joinGameButton" id="' + row.game_id + '">';
@@ -252,24 +257,30 @@ async function showCurrentGames() {
 
 document.addEventListener("click", async (event) => {
   if (event.target.classList.contains("joinGameButton")) {
-    document.getElementById("lobby").style.display = "none";
     const { data, error } = await supabaseClient
+      .from("currentGames")
+      .select("has_started")
+      .eq("game_id", event.target.id);
+    if (data[0].has_started) return;
+    document.getElementById("lobby").style.display = "none";
+    const { data: data2, error: error2 } = await supabaseClient
       .from("currentGames")
       .select("users_in_game")
       .eq("game_id", event.target.id);
-    const newArr = data[0].users_in_game;
+    const newArr = data2[0].users_in_game;
     newArr.push(currentUser.id);
-    const { data: data2, error: error2 } = await supabaseClient
+    const { data: data3, error: error3 } = await supabaseClient
       .from("currentGames")
       .update({
         users_in_game: newArr,
       })
       .eq("game_id", event.target.id);
-    const { data: data3, error: error3 } = await supabaseClient
+    const { data: data4, error: error4 } = await supabaseClient
       .from("profiles")
       .update({ in_game: event.target.id })
       .eq("uuid", currentUser.id);
-
+    console.log("update error?");
+    console.log(error4);
     joinGame(event.target.id);
   }
 });
@@ -285,12 +296,17 @@ document
   .getElementById("leaveGameButton")
   .addEventListener("click", async () => {
     document.getElementById("inGame").style.display = "none";
+    document.getElementById("gameQuestion").style.display = "none";
     document.getElementById("leaveGameButton").style.display = "none";
     document.getElementById("startGameButton").style.display = "none";
+    document.getElementById("forwardArrowQuestionButton").style.display =
+      "none";
+    document.getElementById("backArrowQuestionButton").style.display = "none";
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("in_game")
       .eq("uuid", currentUser.id);
+    console.log(data + "leavr game");
     const gameID = data[0].in_game;
     const { data: data2, error: error2 } = await supabaseClient
       .from("profiles")
@@ -336,18 +352,7 @@ document
     document.getElementById("lobby").style.display = "block";
   });
 
-/*const currentGamesChannel = supabaseClient
-  .channel("current-games")
-  .on(
-    "postgres_changes",
-    { event: "*", schema: "public", table: "currentGames" },
-    (payload) => showCurrentGames()
-  )
-  .subscribe(); // change to only update when # users change or game addition/deletion?
-*/
-
 async function joinGame(gameID) {
-  console.log("gameid:" + gameID);
   document.getElementById("inGame").style.display = "block";
   document.getElementById("leaveGameButton").style.display = "block";
   const checkInGameChannel = supabaseClient
@@ -359,6 +364,9 @@ async function joinGame(gameID) {
       },
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
+        console.log("payload:");
+        console.log(payload);
+        console.log(payload.payload);
         startGame(payload.payload.row);
       }
     )
@@ -377,6 +385,10 @@ async function joinGame(gameID) {
         .eq("host_id", currentUser.id);
       if (!error) {
         const { data: data2, error: error2 } = await supabaseClient
+          .from("profiles")
+          .select("in_game")
+          .eq("handle", userHandle);
+        const { data: data3, error: error3 } = await supabaseClient
           .from("currentGames")
           .select("*")
           .eq("game_id", gameID);
@@ -387,25 +399,18 @@ async function joinGame(gameID) {
         });
         document.getElementById("startGameButton").style.display = "none";
         supabaseClient.removeChannel(checkInGameChannel);
-        console.log(data2);
-        console.log(data2[0]);
-        console.log(data2[0].game_id);
-        startGame(data2[0]);
+        if (error2) console.log(error3);
+        console.log("start host row?");
+        console.log(data3);
+        console.log(data3[0].host_id);
+        startGame(data3[0]);
       }
     });
-
-  lobbyMessagesChannel.send({
-    type: "broadcast",
-    event: "lobby_message_sent",
-    payload: {
-      text: document.getElementById("enterLobbyMessage").value,
-      handle: userHandle,
-    },
-  });
 }
 
 async function startGame(row) {
   document.getElementById("startedGame").style.display = "block";
+  console.log("row" + row);
   const gameID = row.game_id;
   function waitForInput(ms, timestamp, answer) {
     return new Promise((resolve) => {
@@ -479,7 +484,9 @@ async function startGame(row) {
       new Promise((resolve) => setTimeout(ms)),
     ]);
   }
-
+  let questionRowArr = [];
+  let questionArr = [];
+  let answerArr = [];
   let score = 0;
   for (let i = 0; i < row.number_of_problems; i++) {
     document.getElementById("scores").style.display = "none";
@@ -489,32 +496,36 @@ async function startGame(row) {
       .select("*")
       .eq("id", row.questions[i]);
     const questionRow = data[0];
-    let questionDisplay = "<div><div>";
-    questionDisplay += questionRow.question + "</div>";
+    questionRowArr.push(questionRow);
+    let questionDisplay = "<div>";
+    questionDisplay += "<div>" + questionRow.question + "</div>";
     for (let j = 0; j < 4; j++) {
       questionDisplay +=
-        "<p>" + (j + 1) + ": " + questionRow.choices[j] + "</p>"; //do i add <br> check it
+        "<p>" + (j + 1) + ": " + questionRow.choices[j] + "</p>";
     }
+    questionArr.push(questionDisplay);
     questionDisplay += "</div>";
     document.getElementById("gameQuestion").innerHTML = questionDisplay;
+    document.getElementById("gameQuestion").style.fontSize = "15";
     document.getElementById("gameQuestion").style.display = "block";
     document.getElementById("answerForm").style.display = "block";
     let timestamp = [Date.now()];
-    let answerArr = [];
+    let getAnswerArr = [];
     const result = await waitForInput(
       (row.time_limit + 1) * 1000,
       timestamp,
-      answerArr
+      getAnswerArr
     ); // ms to s, +1 to account for time to call backend
-
     document.getElementById("answerForm").style.display = "none";
     document.getElementById("gameQuestion").style.display = "none";
     const timeSpent = timestamp[1] - timestamp[0];
-    const answer = answerArr[0];
+    let answer = "";
     if (result == "submitted") {
+      answer = getAnswerArr[0];
       if (answer == questionRow.answer)
         score += 1.2 * row.time_limit - timeSpent / 1000;
     }
+    answerArr.push(answer);
     let last = false;
     if (scores.length == row.users_in_game.length - 1) last = true;
     scores.push([userHandle, score]);
@@ -530,8 +541,72 @@ async function startGame(row) {
     await showScore();
     if (last) await wait(250);
   }
-
   supabaseClient.removeChannel(gameScoreChannel);
-  document.getElementById("inGame").style.display = "none";
-  document.getElementById("lobby").style.display = "block";
+  await wait(1000);
+  document.getElementById("scores").style.display = "none";
+  //check rating change
+  let ratings = [];
+  for (let i = 0; i < scores.length; i++) {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("rating")
+      .eq("handle", scores[i][0]);
+    console.log(data[0]);
+    ratings.push(data[0]);
+  }
+  await wait(1500);
+
+  document.getElementById("gameQuestion").innerHTML =
+    "<div>" +
+    "<b><i><u>Question " +
+    (index + 1) +
+    "</u></i></b>" +
+    questionArr[0] +
+    "<pre>Your answer: " +
+    answerArr[0] +
+    "    Correct answer: " +
+    questionRowArr[0].answer +
+    "</pre></div>";
+  document.getElementById("gameQuestion").style.display = "block";
+  document.getElementById("gameQuestion").style.fontSize = "12";
+  document.getElementById("forwardArrowQuestionButton").style.display = "block";
+  document.getElementById("backArrowQuestionButton").style.display = "block";
+
+  let index = 0;
+  document
+    .getElementById("forwardArrowQuestionButton")
+    .addEventListener("click", async () => {
+      index = (index + 1) % questionArr.length;
+      document.getElementById("gameQuestion").innerHTML =
+        "<div>" +
+        "<b><i><u>Question " +
+        (index + 1) +
+        "</u></i></b>" +
+        questionArr[index] +
+        "<pre>Your answer: " +
+        answerArr[index] +
+        "    Correct answer: " +
+        questionRowArr[index].answer +
+        "</pre></div>";
+    });
+
+  document
+    .getElementById("backArrowQuestionButton")
+    .addEventListener("click", async () => {
+      index = (index + questionArr.length - 1) % questionArr.length;
+      document.getElementById("gameQuestion").innerHTML =
+        "<div>" +
+        "<b><i><u>Question " +
+        (index + 1) +
+        "</u></i></b>" +
+        questionArr[index] +
+        "<pre>Your answer: " +
+        answerArr[index] +
+        "    Correct answer: " +
+        questionRowArr[index].answer +
+        "</pre></div>";
+    });
+
+  //document.getElementById("leaveGameButton").style.display = "none";
+  // add end page, question and answers
 }
