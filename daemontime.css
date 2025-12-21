@@ -140,6 +140,10 @@ input {
   display: none;
 }
 
+#usersInGame {
+  display: none;
+}
+
 #messageBox {
   background-color: black;
   display: flex;
