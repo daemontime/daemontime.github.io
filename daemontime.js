@@ -140,8 +140,8 @@ document.getElementById("newGame").addEventListener("click", async () => {
   for (let i = 0; i < number_of_problems; i++) {
     let a = Math.floor(Math.random() * 2) + 1;
     let b = a * 1000000;
-    if (a == 1) b += Math.floor(Math.random() * 2);
-    if (a == 2) b += Math.floor(Math.random() * 3);
+    if (a == 1) b += Math.floor(Math.random() * 9);
+    if (a == 2) b += Math.floor(Math.random() * 4);
     questions.push(b);
   }
   const { data, error } = await supabaseClient
@@ -215,14 +215,36 @@ const currentGamesChannel = supabaseClient
     "postgres_changes",
     { event: "*", schema: "public", table: "currentGames" },
     (payload) => {
-      showCurrentGames();
+      showCurrentGames(false);
     }
   )
   .subscribe(); // change to only update when # users change or game addition/deletion?
 
 // make this faster
-async function showCurrentGames() {
+async function showCurrentGames(isCreate) {
   const { data, error } = await supabaseClient.from("currentGames").select("*");
+  for (let i = 0; i < data.length; i++) {
+    flag = false;
+    for (let j = 0; j < data[i].users_in_game.length; j++) {
+      if (data[i].users_in_game[j] == currentUser.id) flag = true;
+    }
+    if (flag && !data[i].has_started) {
+      let usersHTML = "<div>Users in game:<br></br>";
+      for (let j = 0; j < data[i].users_in_game.length; j++) {
+        const { data: data2, error: error2 } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("uuid", data[i].users_in_game[j]);
+        let userHandle = data2[0].handle;
+        if (userHandle.length > 14)
+          userHandle = userHandle.slice(0, 14) + "...";
+        usersHTML += userHandle + ": " + data2[0].rating + "<br></br>";
+      }
+      usersHTML += "</div>";
+      document.getElementById("usersInGame").innerHTML = usersHTML;
+    }
+  }
+  if (isCreate) return;
   let table = "<table>";
   for (let i = 0; i < data.length / 4; i++) {
     table += "<tr>";
@@ -291,7 +313,7 @@ function lobby() {
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("game").style.display = "block";
   document.getElementById("messageBox").style.display = "block";
-  showCurrentGames();
+  showCurrentGames(false);
 }
 
 document
@@ -299,7 +321,7 @@ document
   .addEventListener("click", async () => {
     document.getElementById("inGame").style.display = "none";
     document.getElementById("gameQuestion").style.display = "none";
-    document.getElementById("leaveGameButton").innerHTML = "<div></div>";
+    document.getElementById("gameQuestion").innerHTML = "<div></div>";
     document.getElementById("leaveGameButton").style.display = "none";
     document.getElementById("startGameButton").style.display = "none";
     document.getElementById("forwardArrowQuestionButton").style.display =
@@ -351,13 +373,15 @@ document
       }
     }
     wait(500);
-    showCurrentGames();
+    showCurrentGames(false);
     document.getElementById("lobby").style.display = "block";
   });
 
 async function joinGame(gameID) {
   document.getElementById("inGame").style.display = "block";
   document.getElementById("leaveGameButton").style.display = "block";
+  showCurrentGames(true);
+  document.getElementById("usersInGame").style.display = "block";
   const checkInGameChannel = supabaseClient
     .channel("in_game")
     .on(
@@ -367,6 +391,8 @@ async function joinGame(gameID) {
       },
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
+        console.log("joined row log");
+        console.log(payload.payload.row);
         startGame(payload.payload.row);
       }
     )
@@ -392,6 +418,8 @@ async function joinGame(gameID) {
           .from("currentGames")
           .select("*")
           .eq("game_id", gameID);
+        console.log("before data3[0]");
+        console.log(data3[0]);
         checkInGameChannel.send({
           type: "broadcast",
           event: "game_start" + gameID,
@@ -399,12 +427,19 @@ async function joinGame(gameID) {
         });
         document.getElementById("startGameButton").style.display = "none";
         supabaseClient.removeChannel(checkInGameChannel);
+        console.log(error3);
+        document.getElementById("usersInGame").style.display = "none";
+        console.log("host start row log");
+        console.log(data3[0]);
         startGame(data3[0]);
       }
     });
 }
 
 async function startGame(row) {
+  console.log("startgame row");
+  console.log(row);
+  document.getElementById("usersInGame").style.display = "none";
   document.getElementById("startedGame").style.display = "block";
   const gameID = row.game_id;
   function waitForInput(ms, timestamp, answer) {
@@ -427,8 +462,10 @@ async function startGame(row) {
     });
   }
   let scores = [];
+  let newScores = [];
 
-  async function showScore() {
+  async function showScore(last) {
+    document.getElementById("gameQuestion").style.display = "none";
     let scoresDisplay = "<div>";
     scores.sort((a, b) => b[1] - a[1]);
     for (let i = 0; i < scores.length; i++) {
@@ -446,6 +483,10 @@ async function startGame(row) {
     scoresDisplay += "</div>";
     document.getElementById("scores").innerHTML = scoresDisplay;
     document.getElementById("scores").style.display = "block";
+    if (!last) {
+      scores = newScores;
+      newScores = [];
+    }
     await wait(2000);
   }
 
@@ -457,15 +498,27 @@ async function startGame(row) {
         event: "game_score" + gameID,
       },
       (payload) => {
-        scores.push([payload.payload.handle, payload.payload.score]);
+        console.log("before");
+        console.log(scores.length + " " + row.users_in_game.length);
+        if (scores.length < row.users_in_game.length)
+          scores.push([payload.payload.handle, payload.payload.score]);
+        else newScores.push([payload.payload.handle, payload.payload.score]);
+
+        console.log("got score broadcast");
+        console.log(scores.length);
       }
     )
     .subscribe();
 
-  function waitForAllDone() {
+  function waitForAllDone(newScores) {
     return new Promise(async (resolve) => {
-      while (scores.length != row.users_in_game.length) {
-        await wait(1000);
+      while (scores.length < row.users_in_game.length) {
+        await wait(10); // one runs while the other says waiting and then switch because wait(1000)
+        // it takes less than a second for
+      }
+      if (scores.length > row.users_in_game.length) {
+        newScores = scores.slice(row.users_in_game.length, scores.length);
+        scores = scores.slice(0, row.users_in_game.length);
       }
       resolve();
     });
@@ -480,9 +533,9 @@ async function startGame(row) {
   let questionArr = [];
   let answerArr = [];
   let score = 0;
+  document.getElementById("gameQuestion").style.fontSize = "15";
   for (let i = 0; i < row.number_of_problems; i++) {
     document.getElementById("scores").style.display = "none";
-    scores = [];
     const { data, error } = await supabaseClient
       .from("questions")
       .select("*")
@@ -498,19 +551,19 @@ async function startGame(row) {
     questionArr.push(questionDisplay);
     questionDisplay += "</div>";
     document.getElementById("gameQuestion").innerHTML = questionDisplay;
-    document.getElementById("gameQuestion").style.fontSize = "15";
     document.getElementById("gameQuestion").style.display = "block";
     document.getElementById("answerForm").style.display = "block";
     let timestamp = [Date.now()];
     let getAnswerArr = [];
     const result = await waitForInput(
-      (row.time_limit + 1) * 1000,
+      (row.time_limit + 0.5) * 1000, //change it to smaller?
       timestamp,
       getAnswerArr
     ); // ms to s, +1 to account for time to call backend
     document.getElementById("answerForm").style.display = "none";
     document.getElementById("gameQuestion").innerHTML =
       "<div>Waiting for others...</div>";
+    document.getElementById("gameQuestion").style.display = "block";
     const timeSpent = timestamp[1] - timestamp[0];
     let answer = "";
     if (result == "submitted") {
@@ -532,8 +585,20 @@ async function startGame(row) {
         score: score,
       },
     });
+    console.log("before wait" + scores.length);
+    console.log("start wait");
     await waitWithTimeout((row.time_limit - timeSpent + 2) * 1000);
-    await showScore();
+    console.log("after wait" + scores.length);
+    console.log("end wait");
+
+    if (
+      scores.length > row.users_in_game.length &&
+      i != row.number_of_problems - 1
+    ) {
+      newScores = scores.slice(row.users_in_game.length, scores.length);
+      scores = scores.slice(0, row.users_in_game.length);
+    }
+    await showScore(true);
     if (last) await wait(250);
   }
   supabaseClient.removeChannel(gameScoreChannel);
@@ -541,13 +606,59 @@ async function startGame(row) {
   document.getElementById("scores").style.display = "none";
   //check rating change
   let ratings = [];
+  let currentRating = 0;
+  let ratingIndex = -1;
   for (let i = 0; i < scores.length; i++) {
     const { data, error } = await supabaseClient
       .from("profiles")
-      .select("rating")
+      .select("*")
       .eq("handle", scores[i][0]);
-    ratings.push(data[0]);
+    ratings.push(data[0].rating);
+    if (data[0].uuid == currentUser.id) {
+      currentRating = data[0].rating;
+      ratingIndex = i;
+    }
   }
+  let ratingChange = 0;
+  let divisors = 0;
+  console.log("ratings" + ratings);
+  for (let i = 0; i < ratings.length; i++) {
+    if (ratingIndex > i) {
+      let diff = 0;
+      if (
+        ratings[ratingIndex] - ratings[i] <= 200 &&
+        scores[ratingIndex][1] != scores[i][1]
+      ) {
+        diff = (ratings[i] - ratings[ratingIndex] - 209) / 10;
+        if (diff > 0) diff--;
+        ratingChange += diff; // chec k += -= ++ --
+      }
+    } else if (ratingIndex < i) {
+      if (
+        ratings[ratingIndex] - ratings[i] <= 200 &&
+        scores[ratingIndex][1] != scores[i][1]
+      ) {
+        diff = (ratings[i] - ratings[ratingIndex] - 209) / 10;
+        if (diff > 0) diff--;
+        ratingChange -= diff;
+      }
+    } else divisors--;
+    divisors++;
+  }
+  if (divisors != 0) ratingChange = ratingChange / divisors;
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .update({ rating: currentRating + ratingChange })
+    .eq("uuid", currentUser.id);
+
+  let changeHTML =
+    "<div>New rating: " + Math.floor(currentRating + ratingChange) + "(";
+  if (ratingChange >= 0) changeHTML += "+";
+  else changeHTML += "-";
+  changeHTML += Math.floor(ratingChange) + ")</div>";
+  document.getElementById("gameQuestion").innerHTML = changeHTML;
+  document.getElementById("gameQuestion").style.display = "block";
+
   await wait(1500);
   let index = 0;
   document.getElementById("gameQuestion").innerHTML =
