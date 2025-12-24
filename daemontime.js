@@ -168,6 +168,31 @@ document.getElementById("newGame").addEventListener("click", async () => {
   }
 });
 
+let chatOn = true;
+
+document
+  .getElementById("chatToggleButton")
+  .addEventListener("click", async () => {
+    if (chatOn) {
+      chatOn = false;
+      document.getElementById("gameBox").style.height = "541px";
+      document.getElementById("messageBox").style.display = "none";
+      document.getElementById("lobbyMessages").style.display = "none";
+      document.getElementById("lobbyMessageForm").style.display = "none";
+      document.getElementById("chatToggleButton").textContent = "Show Chat";
+      console.log(true);
+    } else {
+      chatOn = true;
+      document.getElementById("gameBox").style.height = "400px";
+      document.getElementById("messageBox").style.display = "block";
+      document.getElementById("lobbyMessages").style.display = "block";
+      document.getElementById("lobbyMessageForm").style.display = "block";
+      document.getElementById("chatToggleButton").textContent = "Hide Chat";
+      console.log(false);
+      console.log(false);
+    }
+  });
+
 const lobbyMessagesChannel = supabaseClient
   .channel("lobbyMessages")
   .on("broadcast", { event: "lobby_message_sent" }, (payload) => {
@@ -229,7 +254,7 @@ async function showCurrentGames(isCreate) {
       if (data[i].users_in_game[j] == currentUser.id) flag = true;
     }
     if (flag && !data[i].has_started) {
-      let usersHTML = "<div>Users in game:<br></br>";
+      let usersHTML = "<div><br></br><u><b>Users in game:</b></u><br></br>";
       for (let j = 0; j < data[i].users_in_game.length; j++) {
         const { data: data2, error: error2 } = await supabaseClient
           .from("profiles")
@@ -238,7 +263,7 @@ async function showCurrentGames(isCreate) {
         let userHandle = data2[0].handle;
         if (userHandle.length > 14)
           userHandle = userHandle.slice(0, 14) + "...";
-        usersHTML += userHandle + ": " + data2[0].rating + "<br></br>";
+        usersHTML += userHandle + " : " + data2[0].rating + "<br></br>";
       }
       usersHTML += "</div>";
       document.getElementById("usersInGame").innerHTML = usersHTML;
@@ -246,11 +271,11 @@ async function showCurrentGames(isCreate) {
   }
   if (isCreate) return;
   let table = "<table>";
-  for (let i = 0; i < data.length / 4; i++) {
+  for (let i = 0; i < data.length / 5; i++) {
     table += "<tr>";
-    for (let j = 0; j < 4; j++) {
-      if (i * 4 + j < data.length) {
-        let row = data[i * 4 + j];
+    for (let j = 0; j < 5; j++) {
+      if (i * 5 + j < data.length) {
+        let row = data[i * 5 + j];
         table += "<td>";
         table += "# players: " + row.users_in_game.length;
         let hostHandle = row.host_handle;
@@ -264,7 +289,7 @@ async function showCurrentGames(isCreate) {
         } else {
           table +=
             '<br></br><button class="joinGameButton" id="' + row.game_id + '">';
-          table += "Join</button>";
+          table += "<b>&#8658;</b></button>";
         }
       } else {
         table += "<td style='border:0px'>";
@@ -391,8 +416,6 @@ async function joinGame(gameID) {
       },
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
-        console.log("joined row log");
-        console.log(payload.payload.row);
         startGame(payload.payload.row);
       }
     )
@@ -418,8 +441,6 @@ async function joinGame(gameID) {
           .from("currentGames")
           .select("*")
           .eq("game_id", gameID);
-        console.log("before data3[0]");
-        console.log(data3[0]);
         checkInGameChannel.send({
           type: "broadcast",
           event: "game_start" + gameID,
@@ -427,18 +448,13 @@ async function joinGame(gameID) {
         });
         document.getElementById("startGameButton").style.display = "none";
         supabaseClient.removeChannel(checkInGameChannel);
-        console.log(error3);
         document.getElementById("usersInGame").style.display = "none";
-        console.log("host start row log");
-        console.log(data3[0]);
         startGame(data3[0]);
       }
     });
 }
 
 async function startGame(row) {
-  console.log("startgame row");
-  console.log(row);
   document.getElementById("usersInGame").style.display = "none";
   document.getElementById("startedGame").style.display = "block";
   const gameID = row.game_id;
@@ -470,15 +486,19 @@ async function startGame(row) {
     scores.sort((a, b) => b[1] - a[1]);
     for (let i = 0; i < scores.length; i++) {
       let rank = i + 1;
+      floorScore = Math.floor(scores[i][1] * 1000) / 1000;
+      floorIncrease = Math.floor(scores[i][2] * 1000) / 1000;
       scoresDisplay +=
         "<p>" +
         rank +
         ". " +
         scores[i][0] +
         ": " +
-        scores[i][1] +
-        " pts" +
-        "</p>";
+        floorScore +
+        " pts (+" +
+        floorIncrease +
+        ")";
+      ("</p>");
     }
     scoresDisplay += "</div>";
     document.getElementById("scores").innerHTML = scoresDisplay;
@@ -498,14 +518,19 @@ async function startGame(row) {
         event: "game_score" + gameID,
       },
       (payload) => {
-        console.log("before");
-        console.log(scores.length + " " + row.users_in_game.length);
         if (scores.length < row.users_in_game.length)
-          scores.push([payload.payload.handle, payload.payload.score]);
-        else newScores.push([payload.payload.handle, payload.payload.score]);
-
-        console.log("got score broadcast");
-        console.log(scores.length);
+          scores.push([
+            payload.payload.handle,
+            payload.payload.score,
+            payload.payload.increase,
+          ]);
+        else {
+          newScores.push([
+            payload.payload.handle,
+            payload.payload.score,
+            payload.payload.increase,
+          ]);
+        }
       }
     )
     .subscribe();
@@ -566,30 +591,30 @@ async function startGame(row) {
     document.getElementById("gameQuestion").style.display = "block";
     const timeSpent = timestamp[1] - timestamp[0];
     let answer = "";
+    let scoreIncrease = 0;
     if (result == "submitted") {
       answer = getAnswerArr[0];
       if (answer == questionRow.answer) {
-        score += 1.2 * row.time_limit - timeSpent / 1000;
-        score = Math.round(score * 1000) / 1000; // round to nearest thousandth
+        scoreIncrease = 1.2 * row.time_limit - timeSpent / 1000;
+        score += scoreIncrease;
+        //score = Math.round(score * 1000) / 1000; // round to nearest thousandth
       }
     }
     answerArr.push(answer);
     let last = false;
     if (scores.length == row.users_in_game.length - 1) last = true;
-    scores.push([userHandle, score]);
+    scores.push([userHandle, score, scoreIncrease]);
     gameScoreChannel.send({
       type: "broadcast",
       event: "game_score" + gameID,
       payload: {
         handle: userHandle,
         score: score,
+        increase: scoreIncrease,
       },
     });
-    console.log("before wait" + scores.length);
-    console.log("start wait");
+
     await waitWithTimeout((row.time_limit - timeSpent + 2) * 1000);
-    console.log("after wait" + scores.length);
-    console.log("end wait");
 
     if (
       scores.length > row.users_in_game.length &&
@@ -598,7 +623,8 @@ async function startGame(row) {
       newScores = scores.slice(row.users_in_game.length, scores.length);
       scores = scores.slice(0, row.users_in_game.length);
     }
-    await showScore(true);
+    if (i == row.number_of_problems) await showScore(true);
+    else await showScore(false);
     if (last) await wait(250);
   }
   supabaseClient.removeChannel(gameScoreChannel);
@@ -621,7 +647,7 @@ async function startGame(row) {
   }
   let ratingChange = 0;
   let divisors = 0;
-  console.log("ratings" + ratings);
+
   for (let i = 0; i < ratings.length; i++) {
     if (ratingIndex > i) {
       let diff = 0;
@@ -659,7 +685,7 @@ async function startGame(row) {
   document.getElementById("gameQuestion").innerHTML = changeHTML;
   document.getElementById("gameQuestion").style.display = "block";
 
-  await wait(1500);
+  await wait(2000);
   let index = 0;
   document.getElementById("gameQuestion").innerHTML =
     "<div>" +
