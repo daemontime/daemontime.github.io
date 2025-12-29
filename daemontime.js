@@ -132,11 +132,33 @@ document
     document.getElementById("signinButtons").style.display = "block";
   });
 
+const gameColors = [
+  ["Aqua", "black"],
+  ["Blueviolet", "white"],
+  ["Cadetblue", "white"],
+  ["Crimson", "white"],
+  ["Darkslategray", "white"],
+  ["Firebrick", "white"],
+  ["Goldenrod", "black"],
+  ["Indigo", "white"],
+  ["Lavender", "black"],
+  ["Lemonchiffon", "black"],
+  ["Lightgreen", "black"],
+  ["Mistyrose", "black"],
+  [("Orange", "black")],
+  ["Seagreen", "white"],
+  ["Yellowgreen", "black"],
+];
+
 document.getElementById("newGame").addEventListener("click", async () => {
   document.getElementById("lobby").style.display = "none";
   const number_of_problems = 10;
   const time_limit = 30;
   let questions = [];
+  const { data: datax, error: errox } = await supabaseClient
+    .from("profiles")
+    .select("in_game")
+    .eq("uuid", currentUser.id);
   for (let i = 0; i < number_of_problems; i++) {
     let a = Math.floor(Math.random() * 2) + 1;
     let b = a * 1000000;
@@ -153,6 +175,7 @@ document.getElementById("newGame").addEventListener("click", async () => {
       time_limit: time_limit,
       users_in_game: [currentUser.id],
       questions: questions,
+      colorIndex: Math.floor(Math.random() * gameColors.length),
     })
     .select();
   if (!error) {
@@ -164,6 +187,10 @@ document.getElementById("newGame").addEventListener("click", async () => {
       .eq("uuid", currentUser.id);
 
     document.getElementById("startGameButton").style.display = "block";
+    const { data: datax, error: errox } = await supabaseClient
+      .from("profiles")
+      .select("in_game")
+      .eq("uuid", currentUser.id);
     joinGame(data[0].game_id);
   }
 });
@@ -179,22 +206,17 @@ document
       document.getElementById("messageBox").style.display = "none";
       document.getElementById("lobbyMessages").style.display = "none";
       document.getElementById("lobbyMessageForm").style.display = "none";
-      document.getElementById("chatToggleButton").textContent = "Show Chat";
-      console.log(true);
     } else {
       chatOn = true;
       document.getElementById("gameBox").style.height = "400px";
       document.getElementById("messageBox").style.display = "block";
       document.getElementById("lobbyMessages").style.display = "block";
       document.getElementById("lobbyMessageForm").style.display = "block";
-      document.getElementById("chatToggleButton").textContent = "Hide Chat";
-      console.log(false);
-      console.log(false);
     }
   });
 
 const lobbyMessagesChannel = supabaseClient
-  .channel("lobbyMessages")
+  .channel("lobbyMessages", { config: { broadcast: { self: true } } })
   .on("broadcast", { event: "lobby_message_sent" }, (payload) => {
     addLobbyMessage(payload.payload.text, payload.payload.handle);
   })
@@ -212,10 +234,10 @@ document
         handle: userHandle,
       },
     });
-    addLobbyMessage(
+    /* addLobbyMessage(
       document.getElementById("enterLobbyMessage").value,
       userHandle
-    );
+    );*/
     document.getElementById("enterLobbyMessage").value = "";
   });
 /*
@@ -254,6 +276,10 @@ async function showCurrentGames(isCreate) {
       if (data[i].users_in_game[j] == currentUser.id) flag = true;
     }
     if (flag && !data[i].has_started) {
+      if (data[i].host_id == currentUser.id) {
+        document.getElementById("startGameButton").style.display = "block";
+        hostingGameID = data[i].game_id;
+      }
       let usersHTML = "<div><br></br><u><b>Users in game:</b></u><br></br>";
       for (let j = 0; j < data[i].users_in_game.length; j++) {
         const { data: data2, error: error2 } = await supabaseClient
@@ -263,7 +289,8 @@ async function showCurrentGames(isCreate) {
         let userHandle = data2[0].handle;
         if (userHandle.length > 14)
           userHandle = userHandle.slice(0, 14) + "...";
-        usersHTML += userHandle + " : " + data2[0].rating + "<br></br>";
+        usersHTML +=
+          userHandle + " : " + Math.floor(data2[0].rating) + "<br></br>";
       }
       usersHTML += "</div>";
       document.getElementById("usersInGame").innerHTML = usersHTML;
@@ -271,12 +298,14 @@ async function showCurrentGames(isCreate) {
   }
   if (isCreate) return;
   let table = "<table>";
-  for (let i = 0; i < data.length / 5; i++) {
+  for (let i = 0; i < data.length / 4; i++) {
     table += "<tr>";
-    for (let j = 0; j < 5; j++) {
-      if (i * 5 + j < data.length) {
-        let row = data[i * 5 + j];
-        table += "<td>";
+    for (let j = 0; j < 4; j++) {
+      if (i * 4 + j < data.length) {
+        let row = data[i * 4 + j];
+        const [bg, text] = gameColors[row.colorIndex];
+        const borderColor = text == "black" ? "gray" : "white";
+        table += `<td style="background-color:${bg}; color:${text}; border: solid ${borderColor}">`;
         table += "# players: " + row.users_in_game.length;
         let hostHandle = row.host_handle;
         if (hostHandle.length > 10)
@@ -288,8 +317,11 @@ async function showCurrentGames(isCreate) {
           table += "<br></br>Game started";
         } else {
           table +=
-            '<br></br><button class="joinGameButton" id="' + row.game_id + '">';
-          table += "<b>&#8658;</b></button>";
+            '<br></br><button class="joinGameButton" id="' + row.game_id + '" ';
+          const color = text === "black" ? "white" : "black";
+          table += `style="background-color:${text}; color:${color}"`;
+          table += ">";
+          table += "&#8658;</button>";
         }
       } else {
         table += "<td style='border:0px'>";
@@ -312,6 +344,10 @@ document.addEventListener("click", async (event) => {
       .from("currentGames")
       .select("has_started")
       .eq("game_id", event.target.id);
+    const { data: datax, error: errox } = await supabaseClient
+      .from("profiles")
+      .select("in_game")
+      .eq("uuid", currentUser.id);
     if (data[0].has_started) return;
     document.getElementById("lobby").style.display = "none";
     const { data: data2, error: error2 } = await supabaseClient
@@ -330,6 +366,10 @@ document.addEventListener("click", async (event) => {
       .from("profiles")
       .update({ in_game: event.target.id })
       .eq("uuid", currentUser.id);
+    const { data: datay, error: erroy } = await supabaseClient
+      .from("profiles")
+      .select("in_game")
+      .eq("uuid", currentUser.id);
     joinGame(event.target.id);
   }
 });
@@ -338,6 +378,18 @@ function lobby() {
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("game").style.display = "block";
   document.getElementById("messageBox").style.display = "block";
+  document.getElementById("newGame").style.display = "block";
+  document.getElementById("lobby").style.display = "block";
+  document.getElementById("inGame").style.display = "none";
+  document.getElementById("startedGame").style.display = "none";
+  document.getElementById("gameQuestion").innerHTML = "<div></div>";
+  document.getElementById("gameQuestion").style.display = "none";
+  document.getElementById("scores").style.display = "none";
+  document.getElementById("leaveGameButton").style.display = "none";
+  document.getElementById("startGameButton").style.display = "none";
+  document.getElementById("forwardArrowQuestionButton").style.display = "none";
+  document.getElementById("backArrowQuestionButton").style.display = "none";
+  hostingGameID = null;
   showCurrentGames(false);
 }
 
@@ -345,70 +397,94 @@ document
   .getElementById("leaveGameButton")
   .addEventListener("click", async () => {
     document.getElementById("inGame").style.display = "none";
-    document.getElementById("gameQuestion").style.display = "none";
+    document.getElementById("startedGame").style.display = "none";
     document.getElementById("gameQuestion").innerHTML = "<div></div>";
+    document.getElementById("gameQuestion").style.display = "none";
+    document.getElementById("scores").style.display = "none";
     document.getElementById("leaveGameButton").style.display = "none";
     document.getElementById("startGameButton").style.display = "none";
     document.getElementById("forwardArrowQuestionButton").style.display =
       "none";
     document.getElementById("backArrowQuestionButton").style.display = "none";
+    try {
+      supabaseClient.removeChannel(checkInGameChannel);
+    } catch (e) {
+      //do nothing
+    }
+    checkInGameChannel = null;
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("in_game")
       .eq("uuid", currentUser.id);
-    const gameID = data[0].in_game;
-    const { data: data2, error: error2 } = await supabaseClient
-      .from("profiles")
-      .update({ in_game: null })
-      .eq("uuid", currentUser.id);
-    const { data: data3, error: error3 } = await supabaseClient
-      .from("currentGames")
-      .select("users_in_game")
-      .eq("game_id", gameID);
-    const users = data3[0].users_in_game;
-    if (users.length == 1) {
-      const {
-        data: { user },
-        error: error2,
-      } = await supabaseClient.auth.getUser();
-      const { data: data4, error: error4 } = await supabaseClient
+    if (data[0].in_game != null) {
+      const gameID = data[0].in_game;
+      const { data: data2, error: error2 } = await supabaseClient
+        .from("profiles")
+        .update({ in_game: null })
+        .eq("uuid", currentUser.id);
+      const { data: data3, error: error3 } = await supabaseClient
         .from("currentGames")
-        .delete()
+        .select("users_in_game")
         .eq("game_id", gameID);
-    } else {
-      const newArr = [];
-      for (let i = 0; i < users.length; i++) {
-        if (users[i] != currentUser.id) newArr.push(users[i]);
-      }
-      const { data: data5, error: error5 } = await supabaseClient
-        .from("currentGames")
-        .update({ users_in_game: newArr })
-        .eq("game_id", gameID);
-
-      const { data: data6, error: error6 } = await supabaseClient
-        .from("currentGames")
-        .select("host_id")
-        .eq("game_id", gameID);
-      if (data6 == currentUser.id) {
-        // wrong?
-        const { data: data7, error: error7 } = await supabaseClient
+      const users = data3[0].users_in_game;
+      if (users.length == 1) {
+        const {
+          data: { user },
+          error: error2,
+        } = await supabaseClient.auth.getUser();
+        const { data: data4, error: error4 } = await supabaseClient
           .from("currentGames")
-          .update({ host_id: newArr[0] })
+          .delete()
           .eq("game_id", gameID);
+      } else {
+        const newArr = [];
+        for (let i = 0; i < users.length; i++) {
+          if (users[i] != currentUser.id) newArr.push(users[i]);
+        }
+        const { data: data5, error: error5 } = await supabaseClient
+          .from("currentGames")
+          .update({ users_in_game: newArr })
+          .eq("game_id", gameID);
+
+        const { data: data6, error: error6 } = await supabaseClient
+          .from("currentGames")
+          .select("host_id")
+          .eq("game_id", gameID);
+        if (data6[0].host_id == currentUser.id) {
+          // wrong?
+          const { data: data7, error: error7 } = await supabaseClient
+            .from("profiles")
+            .select("handle")
+            .eq("uuid", newArr[0]);
+          const { data: data8, error: error8 } = await supabaseClient
+            .from("currentGames")
+            .update({ host_id: newArr[0], host_handle: data7[0].handle })
+            .eq("game_id", gameID);
+        }
       }
     }
     wait(500);
-    showCurrentGames(false);
-    document.getElementById("lobby").style.display = "block";
+    lobby();
+    const { data: datax, error: errox } = await supabaseClient
+      .from("profiles")
+      .select("in_game")
+      .eq("uuid", currentUser.id);
+    canStart = true;
   });
 
+let checkInGameChannel = null;
+
 async function joinGame(gameID) {
+  const { data: datax, error: errox } = await supabaseClient
+    .from("profiles")
+    .select("in_game")
+    .eq("uuid", currentUser.id);
   document.getElementById("inGame").style.display = "block";
   document.getElementById("leaveGameButton").style.display = "block";
   showCurrentGames(true);
   document.getElementById("usersInGame").style.display = "block";
-  const checkInGameChannel = supabaseClient
-    .channel("in_game")
+  checkInGameChannel = supabaseClient
+    .channel("in_game", { config: { broadcast: { self: true } } })
     .on(
       "broadcast",
       {
@@ -416,48 +492,60 @@ async function joinGame(gameID) {
       },
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
-        startGame(payload.payload.row);
+        startGame(gameID);
       }
     )
     .subscribe();
-
-  document
-    .getElementById("startGameButton")
-    .addEventListener("click", async () => {
-      // should i remove the ability to leave game (leavegamebutton style display = none)
-      // edit so only host can start, otherwise gives error (or remove the button for non-host)
-      // update: made rls policy only host can start, problem is that other people can edit the host lol
-
-      const { data, error } = await supabaseClient
-        .from("currentGames")
-        .update({ has_started: true })
-        .eq("host_id", currentUser.id);
-      if (!error) {
-        const { data: data2, error: error2 } = await supabaseClient
-          .from("profiles")
-          .select("in_game")
-          .eq("handle", userHandle);
-        const { data: data3, error: error3 } = await supabaseClient
-          .from("currentGames")
-          .select("*")
-          .eq("game_id", gameID);
-        checkInGameChannel.send({
-          type: "broadcast",
-          event: "game_start" + gameID,
-          payload: { row: data3[0] },
-        });
-        document.getElementById("startGameButton").style.display = "none";
-        supabaseClient.removeChannel(checkInGameChannel);
-        document.getElementById("usersInGame").style.display = "none";
-        startGame(data3[0]);
-      }
-    });
 }
 
-async function startGame(row) {
+let i = 1;
+let hostingGameID = null;
+document
+  .getElementById("startGameButton")
+  .addEventListener("click", async () => {
+    // should i remove the ability to leave game (leavegamebutton style display = none)
+    // edit so only host can start, otherwise gives error (or remove the button for non-host)
+    // update: made rls policy only host can start, problem is that other people can edit the host lol
+    i++;
+    if (!checkInGameChannel) return;
+    const { data, error } = await supabaseClient
+      .from("currentGames")
+      .update({ has_started: true })
+      .eq("host_id", currentUser.id);
+    if (!error) {
+      const { data: data2, error: error2 } = await supabaseClient
+        .from("profiles")
+        .select("in_game")
+        .eq("handle", userHandle);
+      if (!hostingGameID) return;
+      const { data: data3, error: error3 } = await supabaseClient
+        .from("currentGames")
+        .select("*")
+        .eq("game_id", hostingGameID);
+      checkInGameChannel.send({
+        type: "broadcast",
+        event: "game_start" + hostingGameID,
+        payload: { game_id: hostingGameID },
+      });
+      document.getElementById("startGameButton").style.display = "none";
+      document.getElementById("usersInGame").style.display = "none";
+    }
+  });
+let j = 1;
+let canStart = true;
+async function startGame(gameID, canStart) {
+  const { data: rowdata, error: rowerror } = await supabaseClient
+    .from("currentGames")
+    .select("*")
+    .eq("game_id", gameID);
+  let row = rowdata[0];
+  const { data: datax, error: errox } = await supabaseClient
+    .from("profiles")
+    .select("in_game")
+    .eq("uuid", currentUser.id);
+  document.getElementById("leaveGameButton").style.display = "none";
   document.getElementById("usersInGame").style.display = "none";
   document.getElementById("startedGame").style.display = "block";
-  const gameID = row.game_id;
   function waitForInput(ms, timestamp, answer) {
     return new Promise((resolve) => {
       document.getElementById("answerForm").addEventListener(
@@ -623,7 +711,7 @@ async function startGame(row) {
       newScores = scores.slice(row.users_in_game.length, scores.length);
       scores = scores.slice(0, row.users_in_game.length);
     }
-    if (i == row.number_of_problems) await showScore(true);
+    if (i == row.number_of_problems - 1) await showScore(true);
     else await showScore(false);
     if (last) await wait(250);
   }
@@ -649,23 +737,20 @@ async function startGame(row) {
   let divisors = 0;
 
   for (let i = 0; i < ratings.length; i++) {
+    let diff =
+      -Math.pow(Math.abs(ratings[i] - ratings[ratingIndex] - 300), 1.5) / 400;
     if (ratingIndex > i) {
-      let diff = 0;
       if (
-        ratings[ratingIndex] - ratings[i] <= 200 &&
+        ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        diff = (ratings[i] - ratings[ratingIndex] - 209) / 10;
-        if (diff > 0) diff--;
         ratingChange += diff; // chec k += -= ++ --
       }
     } else if (ratingIndex < i) {
       if (
-        ratings[ratingIndex] - ratings[i] <= 200 &&
+        ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        diff = (ratings[i] - ratings[ratingIndex] - 209) / 10;
-        if (diff > 0) diff--;
         ratingChange -= diff;
       }
     } else divisors--;
@@ -681,11 +766,13 @@ async function startGame(row) {
     "<div>New rating: " + Math.floor(currentRating + ratingChange) + "(";
   if (ratingChange >= 0) changeHTML += "+";
   else changeHTML += "-";
-  changeHTML += Math.floor(ratingChange) + ")</div>";
+  changeHTML += Math.floor(Math.abs(ratingChange)) + ")</div>";
   document.getElementById("gameQuestion").innerHTML = changeHTML;
   document.getElementById("gameQuestion").style.display = "block";
 
   await wait(2000);
+
+  document.getElementById("leaveGameButton").style.display = "block";
   let index = 0;
   document.getElementById("gameQuestion").innerHTML =
     "<div>" +
@@ -703,40 +790,65 @@ async function startGame(row) {
   document.getElementById("forwardArrowQuestionButton").style.display = "block";
   document.getElementById("backArrowQuestionButton").style.display = "block";
 
+  function questionForward() {
+    index = (index + 1) % questionArr.length;
+    document.getElementById("gameQuestion").innerHTML =
+      "<div>" +
+      "<b><i><u>Question " +
+      (index + 1) +
+      "</u></i></b>" +
+      questionArr[index] +
+      "<pre>Your answer: " +
+      answerArr[index] +
+      "    Correct answer: " +
+      questionRowArr[index].answer +
+      "</pre></div>";
+  }
+
+  function questionBack() {
+    index = (index + questionArr.length - 1) % questionArr.length;
+    document.getElementById("gameQuestion").innerHTML =
+      "<div>" +
+      "<b><i><u>Question " +
+      (index + 1) +
+      "</u></i></b>" +
+      questionArr[index] +
+      "<pre>Your answer: " +
+      answerArr[index] +
+      "    Correct answer: " +
+      questionRowArr[index].answer +
+      "</pre></div>";
+  }
   document
     .getElementById("forwardArrowQuestionButton")
     .addEventListener("click", async () => {
-      index = (index + 1) % questionArr.length;
-      document.getElementById("gameQuestion").innerHTML =
-        "<div>" +
-        "<b><i><u>Question " +
-        (index + 1) +
-        "</u></i></b>" +
-        questionArr[index] +
-        "<pre>Your answer: " +
-        answerArr[index] +
-        "    Correct answer: " +
-        questionRowArr[index].answer +
-        "</pre></div>";
+      questionBack();
     });
 
   document
     .getElementById("backArrowQuestionButton")
     .addEventListener("click", async () => {
-      index = (index + questionArr.length - 1) % questionArr.length;
-      document.getElementById("gameQuestion").innerHTML =
-        "<div>" +
-        "<b><i><u>Question " +
-        (index + 1) +
-        "</u></i></b>" +
-        questionArr[index] +
-        "<pre>Your answer: " +
-        answerArr[index] +
-        "    Correct answer: " +
-        questionRowArr[index].answer +
-        "</pre></div>";
+      questionForward();
     });
 
-  //document.getElementById("leaveGameButton").style.display = "none";
-  // add end page, question and answers
+  document.addEventListener("keydown", function (event) {
+    switch (event.key) {
+      case "ArrowLeft":
+        questionBack();
+        break;
+      case "ArrowRight":
+        questionForward();
+        break;
+    }
+  });
+
+  // delete row
+  const { data: data2, error: error2 } = await supabaseClient
+    .from("currentGames")
+    .delete()
+    .eq("game_id", row.game_id);
+  const { data: data3, error: error3 } = await supabaseClient
+    .from("profiles")
+    .update({ in_game: null })
+    .eq("uuid", currentUser.id);
 }
