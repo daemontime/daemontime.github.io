@@ -57,8 +57,14 @@ input {
   display: none;
 }
 
+form,
+input {
+  border-radius: 6px;
+}
+
 #game {
   display: none;
+  margin-bottom: 50px;
 }
 
 #gameBox {
@@ -69,6 +75,7 @@ input {
   margin: auto;
   overflow-y: auto;
   position: relative;
+  border-bottom: 0px;
 }
 
 #newGame {
@@ -77,22 +84,20 @@ input {
   position: absolute;
   top: 0px;
   left: 0px;
-  height: 50px;
-  width: 50px;
+  height: 75px;
+  width: 75px;
   border: none;
   outline: none;
   border-bottom-right-radius: 100%;
-  padding: 0px 12px 11px 0px;
+  padding: 0px 15px 13px 0px;
+  font-weight: bold;
 }
 #newGame:hover {
   /* border: 2px solid rgb(0, 200, 0);*/
   background-color: rgb(0, 200, 0);
   color: white;
   cursor: pointer;
-}
-
-#newGameOfficial {
-  display: none;
+  font-size: 15px;
 }
 
 #currentGamesTable {
@@ -123,7 +128,7 @@ input {
   color: white !important;
   cursor: pointer;
 }
-
+/*
 #chatToggleButton {
   box-shadow: none;
   border: none;
@@ -132,14 +137,22 @@ input {
   cursor: pointer;
 }
 
-#chatToggleButton {
-  cursor: pointer;
-}
+#chatToggleButton:hover {
+  background-color: black;
+  color: white;
+}*/
 
 #usersInGame,
 #gameQuestion,
 #scores {
   font-family: "Tahoma", sans-serif;
+  margin: 50px;
+}
+#gameQuestion {
+  font-size: 15px;
+}
+#usersInGame {
+  font-size: 13px;
 }
 
 #leaveGameButton {
@@ -149,6 +162,7 @@ input {
   left: 0px;
   border: none;
   outline: none;
+  margin: 0px;
 }
 
 #leaveGameButton:hover {
@@ -169,20 +183,15 @@ input {
   left: 50%;
   -ms-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
+  border-radius: 8px;
+  color: white;
+  background-color: rgb(0, 0, 200);
+  border: 2px solid white;
 }
 
 #startGameButton:hover {
-  background-color: rgb(0, 0, 200);
-  color: white;
   cursor: pointer;
-}
-
-#startedGame {
-  display: none;
-}
-
-#usersInGame {
-  display: none;
+  background-color: rgb(0, 200, 0);
 }
 
 #messageBox {
@@ -202,27 +211,36 @@ input {
   height: 85%;
   overflow-y: auto;
   font-size: 12px;
+  margin-left: 2px;
 }
 
-#lobbyMessageForm {
+#inGameMessages {
+  display: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 85%;
+  overflow-y: auto;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+#lobbyGameMessageForm {
   margin-top: 0;
   margin-bottom: 0;
   height: 15%;
 }
 
-#gameQuestion {
-  font-size: 15px;
-}
-/*
-.arrowButtonGroup {
-  position: relative;
+#answerForm {
+  display: flex;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 50px;
 }
 
-.arrowButtonGroup button {
-  float: left;
-  position: absolute;
-  top: 150%;
-}*/
+.arrowButtons {
+  display: flex;
+}
 
 #forwardArrowQuestionButton {
   display: none;
@@ -231,6 +249,7 @@ input {
   box-shadow: none;
   border: none;
   outline: none;
+  margin-top: 10px;
 }
 
 #forwardArrowQuestionButton:hover {
@@ -246,6 +265,8 @@ input {
   box-shadow: none;
   border: none;
   outline: none;
+  margin-left: 50px;
+  margin-top: 10px;
 }
 
 #backArrowQuestionButton:hover {
@@ -254,9 +275,18 @@ input {
   cursor: pointer;
 }
 
-#answerForm {
-  display: flex;
+#submitQuestionToDatabase {
   display: none;
-  flex-direction: column;
-  align-items: center;
+}
+
+#questionSubmitThanks {
+  display: none;
+}
+
+#submitBugOrFeedback {
+  display: none;
+}
+
+#bugFeedbackThanks {
+  display: none;
 }

@@ -145,7 +145,7 @@ const gameColors = [
   ["Lemonchiffon", "black"],
   ["Lightgreen", "black"],
   ["Mistyrose", "black"],
-  [("Orange", "black")],
+  ["Orange", "black"],
   ["Seagreen", "white"],
   ["Yellowgreen", "black"],
 ];
@@ -153,12 +153,8 @@ const gameColors = [
 document.getElementById("newGame").addEventListener("click", async () => {
   document.getElementById("lobby").style.display = "none";
   const number_of_problems = 10;
-  const time_limit = 30;
+  const time_limit = 45;
   let questions = [];
-  const { data: datax, error: errox } = await supabaseClient
-    .from("profiles")
-    .select("in_game")
-    .eq("uuid", currentUser.id);
   for (let i = 0; i < number_of_problems; i++) {
     let a = Math.floor(Math.random() * 2) + 1;
     let b = a * 1000000;
@@ -186,15 +182,10 @@ document.getElementById("newGame").addEventListener("click", async () => {
       })
       .eq("uuid", currentUser.id);
 
-    document.getElementById("startGameButton").style.display = "block";
-    const { data: datax, error: errox } = await supabaseClient
-      .from("profiles")
-      .select("in_game")
-      .eq("uuid", currentUser.id);
     joinGame(data[0].game_id);
   }
 });
-
+/*
 let chatOn = true;
 
 document
@@ -206,48 +197,68 @@ document
       document.getElementById("messageBox").style.display = "none";
       document.getElementById("lobbyMessages").style.display = "none";
       document.getElementById("lobbyMessageForm").style.display = "none";
+      document.getElementById("gameBox").style.borderBottom = "2px solid black";
     } else {
       chatOn = true;
       document.getElementById("gameBox").style.height = "400px";
       document.getElementById("messageBox").style.display = "block";
       document.getElementById("lobbyMessages").style.display = "block";
       document.getElementById("lobbyMessageForm").style.display = "block";
+      document.getElementById("gameBox").style.borderBottom = "0px";
     }
   });
-
+*/
 const lobbyMessagesChannel = supabaseClient
   .channel("lobbyMessages", { config: { broadcast: { self: true } } })
   .on("broadcast", { event: "lobby_message_sent" }, (payload) => {
-    addLobbyMessage(payload.payload.text, payload.payload.handle);
+    addLobbyMessage(payload.payload.text, payload.payload.handle, true);
   })
   .subscribe();
 
+let inGameMessagesChannel = null;
+let inGame = false;
 document
-  .getElementById("lobbyMessageForm")
+  .getElementById("lobbyGameMessageForm")
   .addEventListener("submit", async (event) => {
     event.preventDefault();
-    lobbyMessagesChannel.send({
-      type: "broadcast",
-      event: "lobby_message_sent",
-      payload: {
-        text: document.getElementById("enterLobbyMessage").value,
-        handle: userHandle,
-      },
-    });
-    /* addLobbyMessage(
-      document.getElementById("enterLobbyMessage").value,
-      userHandle
-    );*/
-    document.getElementById("enterLobbyMessage").value = "";
+    if (inGame) {
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("in_game")
+        .eq("uuid", currentUser.id);
+      const gameID = data[0].in_game;
+
+      inGameMessagesChannel.send({
+        type: "broadcast",
+        event: "ingame_message_sent" + gameID,
+        payload: {
+          text: document.getElementById("enterLobbyGameMessage").value,
+          handle: userHandle,
+        },
+      });
+    } else {
+      lobbyMessagesChannel.send({
+        type: "broadcast",
+        event: "lobby_message_sent",
+        payload: {
+          text: document.getElementById("enterLobbyGameMessage").value,
+          handle: userHandle,
+        },
+      });
+    }
+
+    document.getElementById("enterLobbyGameMessage").value = "";
   });
 /*
 const MAX_MESSAGES = 50;
 let lobbyMessages = [];
 let gameMessages = [];*/
 // no limit of messages currently, do .push, .shift() for array
-function addLobbyMessage(newMessage, handle) {
+function addLobbyMessage(newMessage, handle, isLobby) {
   if (newMessage != undefined) {
-    const messages = document.getElementById("lobbyMessages");
+    let messages;
+    if (isLobby) messages = document.getElementById("lobbyMessages");
+    else messages = document.getElementById("inGameMessages");
     const div = document.createElement("div");
     if (handle.length > 10) handle = handle.slice(0, 10) + "...";
     div.textContent = " " + handle + ": " + newMessage;
@@ -344,10 +355,6 @@ document.addEventListener("click", async (event) => {
       .from("currentGames")
       .select("has_started")
       .eq("game_id", event.target.id);
-    const { data: datax, error: errox } = await supabaseClient
-      .from("profiles")
-      .select("in_game")
-      .eq("uuid", currentUser.id);
     if (data[0].has_started) return;
     document.getElementById("lobby").style.display = "none";
     const { data: data2, error: error2 } = await supabaseClient
@@ -366,29 +373,35 @@ document.addEventListener("click", async (event) => {
       .from("profiles")
       .update({ in_game: event.target.id })
       .eq("uuid", currentUser.id);
-    const { data: datay, error: erroy } = await supabaseClient
-      .from("profiles")
-      .select("in_game")
-      .eq("uuid", currentUser.id);
     joinGame(event.target.id);
   }
 });
 
 function lobby() {
+  inGame = false;
+  inGameMessagesChannel = null;
+  document.getElementById("lobbyMessages").style.display = "block";
+  document.getElementById("inGameMessages").style.display = "none";
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("game").style.display = "block";
   document.getElementById("messageBox").style.display = "block";
   document.getElementById("newGame").style.display = "block";
   document.getElementById("lobby").style.display = "block";
+  document.getElementById("submitQuestionToDatabase").style.display = "block";
+  document.getElementById("submitBugOrFeedback").style.display = "block";
   document.getElementById("inGame").style.display = "none";
   document.getElementById("startedGame").style.display = "none";
   document.getElementById("gameQuestion").innerHTML = "<div></div>";
+  document.getElementById("gameQuestion").style.marginTop = "50px";
   document.getElementById("gameQuestion").style.display = "none";
   document.getElementById("scores").style.display = "none";
   document.getElementById("leaveGameButton").style.display = "none";
+  document.getElementById("usersInGame").style.display = "none";
   document.getElementById("startGameButton").style.display = "none";
   document.getElementById("forwardArrowQuestionButton").style.display = "none";
   document.getElementById("backArrowQuestionButton").style.display = "none";
+  document.getElementById("submitQuestionToDatabase").style.display = "block";
+
   hostingGameID = null;
   showCurrentGames(false);
 }
@@ -406,12 +419,16 @@ document
     document.getElementById("forwardArrowQuestionButton").style.display =
       "none";
     document.getElementById("backArrowQuestionButton").style.display = "none";
+
     try {
       supabaseClient.removeChannel(checkInGameChannel);
-    } catch (e) {
-      //do nothing
-    }
+    } catch (e) {}
     checkInGameChannel = null;
+    try {
+      supabaseClient.removeChannel(inGameMessagesChannel);
+    } catch (e) {}
+    inGameMessagesChannel = null;
+    document.getElementById("inGameMessages").innerHTML = "";
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("in_game")
@@ -465,20 +482,21 @@ document
     }
     wait(500);
     lobby();
-    const { data: datax, error: errox } = await supabaseClient
-      .from("profiles")
-      .select("in_game")
-      .eq("uuid", currentUser.id);
     canStart = true;
   });
 
 let checkInGameChannel = null;
 
 async function joinGame(gameID) {
-  const { data: datax, error: errox } = await supabaseClient
-    .from("profiles")
-    .select("in_game")
-    .eq("uuid", currentUser.id);
+  inGameMessagesChannel = supabaseClient
+    .channel("inGameMessages", { config: { broadcast: { self: true } } })
+    .on("broadcast", { event: "ingame_message_sent" + gameID }, (payload) => {
+      addLobbyMessage(payload.payload.text, payload.payload.handle, false);
+    })
+    .subscribe();
+  inGame = true;
+  document.getElementById("lobbyMessages").style.display = "none";
+  document.getElementById("inGameMessages").style.display = "block";
   document.getElementById("inGame").style.display = "block";
   document.getElementById("leaveGameButton").style.display = "block";
   showCurrentGames(true);
@@ -508,6 +526,9 @@ document
     // update: made rls policy only host can start, problem is that other people can edit the host lol
     i++;
     if (!checkInGameChannel) return;
+    document.getElementById("startGameButton").style.display = "none";
+    document.getElementById("usersInGame").style.display = "none";
+    document.getElementById("leaveGameButton").style.display = "none";
     const { data, error } = await supabaseClient
       .from("currentGames")
       .update({ has_started: true })
@@ -527,8 +548,6 @@ document
         event: "game_start" + hostingGameID,
         payload: { game_id: hostingGameID },
       });
-      document.getElementById("startGameButton").style.display = "none";
-      document.getElementById("usersInGame").style.display = "none";
     }
   });
 let j = 1;
@@ -539,11 +558,6 @@ async function startGame(gameID, canStart) {
     .select("*")
     .eq("game_id", gameID);
   let row = rowdata[0];
-  const { data: datax, error: errox } = await supabaseClient
-    .from("profiles")
-    .select("in_game")
-    .eq("uuid", currentUser.id);
-  document.getElementById("leaveGameButton").style.display = "none";
   document.getElementById("usersInGame").style.display = "none";
   document.getElementById("startedGame").style.display = "block";
   function waitForInput(ms, timestamp, answer) {
@@ -646,7 +660,7 @@ async function startGame(gameID, canStart) {
   let questionArr = [];
   let answerArr = [];
   let score = 0;
-  document.getElementById("gameQuestion").style.fontSize = "15";
+  document.getElementById("gameQuestion").style.fontSize = "15px";
   for (let i = 0; i < row.number_of_problems; i++) {
     document.getElementById("scores").style.display = "none";
     const { data, error } = await supabaseClient
@@ -666,6 +680,7 @@ async function startGame(gameID, canStart) {
     document.getElementById("gameQuestion").innerHTML = questionDisplay;
     document.getElementById("gameQuestion").style.display = "block";
     document.getElementById("answerForm").style.display = "block";
+    document.getElementById("answer").focus();
     let timestamp = [Date.now()];
     let getAnswerArr = [];
     const result = await waitForInput(
@@ -738,20 +753,20 @@ async function startGame(gameID, canStart) {
 
   for (let i = 0; i < ratings.length; i++) {
     let diff =
-      -Math.pow(Math.abs(ratings[i] - ratings[ratingIndex] - 300), 1.5) / 400;
+      Math.pow(Math.abs(ratings[i] - ratings[ratingIndex] - 300), 1.5) / 400;
     if (ratingIndex > i) {
       if (
         ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        ratingChange += diff; // chec k += -= ++ --
+        ratingChange -= diff; // chec k += -= ++ --
       }
     } else if (ratingIndex < i) {
       if (
         ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        ratingChange -= diff;
+        ratingChange += diff;
       }
     } else divisors--;
     divisors++;
@@ -785,8 +800,9 @@ async function startGame(gameID, canStart) {
     "    Correct answer: " +
     questionRowArr[0].answer +
     "</pre></div>";
+  document.getElementById("gameQuestion").style.marginTop = "10px";
+  document.getElementById("gameQuestion").style.fontSize = "13px";
   document.getElementById("gameQuestion").style.display = "block";
-  document.getElementById("gameQuestion").style.fontSize = "12";
   document.getElementById("forwardArrowQuestionButton").style.display = "block";
   document.getElementById("backArrowQuestionButton").style.display = "block";
 
@@ -822,13 +838,13 @@ async function startGame(gameID, canStart) {
   document
     .getElementById("forwardArrowQuestionButton")
     .addEventListener("click", async () => {
-      questionBack();
+      questionForward();
     });
 
   document
     .getElementById("backArrowQuestionButton")
     .addEventListener("click", async () => {
-      questionForward();
+      questionBack();
     });
 
   document.addEventListener("keydown", function (event) {
@@ -852,3 +868,35 @@ async function startGame(gameID, canStart) {
     .update({ in_game: null })
     .eq("uuid", currentUser.id);
 }
+
+document
+  .getElementById("submitQuestionForm")
+  .addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const { data, error } = await supabaseClient
+      .from("userAddedQuestions")
+      .insert({
+        question: document.getElementById("questionInput").value,
+        user: currentUser.id,
+        handle: userHandle,
+      });
+    document.getElementById("questionInput").value = "";
+    document.getElementById("questionSubmitThanks").style.display = "block";
+    await wait(5000);
+    document.getElementById("questionSubmitThanks").style.display = "none";
+  });
+
+document
+  .getElementById("bugFeedbackForm")
+  .addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const { data, error } = await supabaseClient
+      .from("userBugOrFeedback")
+      .insert({
+        text: document.getElementById("bugFeedbackInput").value,
+      });
+    document.getElementById("bugFeedbackInput").value = "";
+    document.getElementById("bugFeedbackThanks").style.display = "block";
+    await wait(5000);
+    document.getElementById("bugFeedbackThanks").style.display = "none";
+  });

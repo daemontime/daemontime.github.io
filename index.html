@@ -67,13 +67,15 @@
         </div>
         <div id="inGame">
           <button id="leaveGameButton">Leave</button>
-          <button id="startGameButton">Start Game</button>
           <div id="usersInGame"></div>
+          <button id="startGameButton">Start Game</button>
           <div id="startedGame">
             <!--<div class="arrowButtonGroup">-->
-            <button id="backArrowQuestionButton">&lt</button>
-            <button id="forwardArrowQuestionButton">&gt</button>
             <!--</div>-->
+            <div class="arrowButtons">
+              <button id="backArrowQuestionButton">&lt</button>
+              <button id="forwardArrowQuestionButton">&gt</button>
+            </div>
             <div id="gameQuestion"></div>
             <div id="scores"></div>
             <form id="answerForm">
@@ -85,18 +87,37 @@
       </div>
       <div id="messageBox">
         <div id="lobbyMessages"></div>
-        <form id="lobbyMessageForm">
+        <div id="inGameMessages"></div>
+        <form id="lobbyGameMessageForm">
           <input
             type="text"
-            id="enterLobbyMessage"
+            id="enterLobbyGameMessage"
             placeholder="Enter message here"
             required
           />
           <button type="submit">Message</button>
         </form>
       </div>
-      <button id="chatToggleButton">Toggle Chat</button>
+      <!--<button id="chatToggleButton">Toggle Chat</button><br /><br />-->
+
       <!--should be a form?-->
+    </div>
+    <div id="submitQuestionToDatabase">
+      Want to write a question to add to the database? Submit it below!
+      <form id="submitQuestionForm">
+        <input type="text" id="questionInput" required />
+        <button type="submit" id="submitQuestion">Submit</button>
+        <p id="questionSubmitThanks">Thanks!</p>
+      </form>
+    </div>
+    <br />
+    <div id="submitBugOrFeedback">
+      Have a bug report or feedback? Submit it below!
+      <form id="bugFeedbackForm">
+        <input type="text" id="bugFeedbackInput" required />
+        <button type="submit" id="submitBugFeedback">Submit</button>
+        <p id="bugFeedbackThanks">Thanks!</p>
+      </form>
     </div>
     <script src="daemontime.js"></script>
   </body>
