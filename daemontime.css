@@ -153,6 +153,7 @@ input {
 }
 #usersInGame {
   font-size: 13px;
+  margin-top: 0px;
 }
 
 #leaveGameButton {

@@ -155,11 +155,22 @@ document.getElementById("newGame").addEventListener("click", async () => {
   const number_of_problems = 10;
   const time_limit = 45;
   let questions = [];
+  const { data: questionData, error: questionError } = await supabaseClient
+    .from("questions")
+    .select("id");
+  console.log(questionData);
+  let numMath = 0;
+  let numEnglish = 0;
+  for (let i = 0; i < questionData.length; i++) {
+    if (questionData[i].id > 1999999) numEnglish++;
+    else numMath++;
+  }
+  console.log(numMath + " " + numEnglish);
   for (let i = 0; i < number_of_problems; i++) {
     let a = Math.floor(Math.random() * 2) + 1;
     let b = a * 1000000;
-    if (a == 1) b += Math.floor(Math.random() * 9);
-    if (a == 2) b += Math.floor(Math.random() * 4);
+    if (a == 1) b += Math.floor(Math.random() * numMath);
+    if (a == 2) b += Math.floor(Math.random() * numEnglish);
     questions.push(b);
   }
   const { data, error } = await supabaseClient
@@ -261,7 +272,8 @@ function addLobbyMessage(newMessage, handle, isLobby) {
     else messages = document.getElementById("inGameMessages");
     const div = document.createElement("div");
     if (handle.length > 10) handle = handle.slice(0, 10) + "...";
-    div.textContent = " " + handle + ": " + newMessage;
+    for (let i = handle.length; i < 10; i++) handle = handle + "&nbsp;";
+    div.innerHTML = " " + handle + ": &nbsp;" + newMessage;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
   }
