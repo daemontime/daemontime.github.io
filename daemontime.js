@@ -247,6 +247,7 @@ document
           handle: userHandle,
         },
       });
+      console.log("sent");
     } else {
       lobbyMessagesChannel.send({
         type: "broadcast",
@@ -268,12 +269,13 @@ let gameMessages = [];*/
 function addLobbyMessage(newMessage, handle, isLobby) {
   if (newMessage != undefined) {
     let messages;
+    console.log("add");
     if (isLobby) messages = document.getElementById("lobbyMessages");
     else messages = document.getElementById("inGameMessages");
     const div = document.createElement("div");
-    if (handle.length > 10) handle = handle.slice(0, 10) + "...";
-    for (let i = handle.length; i < 10; i++) handle = handle + "&nbsp;";
-    div.innerHTML = " " + handle + ": &nbsp;" + newMessage;
+    if (handle.length > 10) handle = handle.slice(0, 10) + "..";
+    for (let i = handle.length; i < 13; i++) handle = handle + "&nbsp;";
+    div.innerHTML = handle + ":&nbsp;" + newMessage;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -302,7 +304,7 @@ async function showCurrentGames(isCreate) {
       if (data[i].host_id == currentUser.id) {
         document.getElementById("startGameButton").style.display = "block";
         hostingGameID = data[i].game_id;
-      }
+      } else document.getElementById("startGameButton").style.display = "none";
       let usersHTML = "<div><br></br><u><b>Users in game:</b></u><br></br>";
       for (let j = 0; j < data[i].users_in_game.length; j++) {
         const { data: data2, error: error2 } = await supabaseClient
@@ -421,6 +423,9 @@ function lobby() {
 document
   .getElementById("leaveGameButton")
   .addEventListener("click", async () => {
+    let afterGame = false;
+    if (document.getElementById("startedGame").style.display === "block")
+      afterGame = true;
     document.getElementById("inGame").style.display = "none";
     document.getElementById("startedGame").style.display = "none";
     document.getElementById("gameQuestion").innerHTML = "<div></div>";
@@ -445,12 +450,13 @@ document
       .from("profiles")
       .select("in_game")
       .eq("uuid", currentUser.id);
-    if (data[0].in_game != null) {
-      const gameID = data[0].in_game;
-      const { data: data2, error: error2 } = await supabaseClient
-        .from("profiles")
-        .update({ in_game: null })
-        .eq("uuid", currentUser.id);
+
+    const gameID = data[0].in_game;
+    const { data: data2, error: error2 } = await supabaseClient
+      .from("profiles")
+      .update({ in_game: null })
+      .eq("uuid", currentUser.id);
+    if (!afterGame) {
       const { data: data3, error: error3 } = await supabaseClient
         .from("currentGames")
         .select("users_in_game")
@@ -504,6 +510,7 @@ async function joinGame(gameID) {
     .channel("inGameMessages", { config: { broadcast: { self: true } } })
     .on("broadcast", { event: "ingame_message_sent" + gameID }, (payload) => {
       addLobbyMessage(payload.payload.text, payload.payload.handle, false);
+      console.log("received");
     })
     .subscribe();
   inGame = true;
@@ -875,10 +882,7 @@ async function startGame(gameID, canStart) {
     .from("currentGames")
     .delete()
     .eq("game_id", row.game_id);
-  const { data: data3, error: error3 } = await supabaseClient
-    .from("profiles")
-    .update({ in_game: null })
-    .eq("uuid", currentUser.id);
+  console.log(inGameMessagesChannel);
 }
 
 document
