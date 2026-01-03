@@ -35,6 +35,15 @@ document.getElementById("guestButton").addEventListener("click", async () => {
           .from("profiles")
           .update({ in_game: null })
           .eq("uuid", currentUser.id);
+
+        lobbyMessagesChannel.send({
+          type: "broadcast",
+          event: "lobby_message_sent",
+          payload: {
+            text: "--Joined--",
+            handle: userHandle,
+          },
+        });
         lobby();
         return;
       }
@@ -77,6 +86,15 @@ document
           .from("profiles")
           .update({ in_game: null })
           .eq("uuid", currentUser.id);
+
+        lobbyMessagesChannel.send({
+          type: "broadcast",
+          event: "lobby_message_sent",
+          payload: {
+            text: "--Joined--",
+            handle: userHandle,
+          },
+        });
         lobby();
         return;
       }
@@ -131,6 +149,15 @@ document
           .from("profiles")
           .update({ in_game: null })
           .eq("uuid", currentUser.id);
+
+        lobbyMessagesChannel.send({
+          type: "broadcast",
+          event: "lobby_message_sent",
+          payload: {
+            text: "--Joined--",
+            handle: userHandle,
+          },
+        });
         lobby();
         return;
       }
@@ -688,7 +715,6 @@ async function startGame(gameID, canStart) {
         await wait(10); // one runs while the other says waiting and then switch because wait(1000)
         // it takes less than a second for
         i++;
-        console.log(0);
         if (i > ms / 10) break;
       }
       if (scores.length > row.users_in_game.length) {
@@ -765,9 +791,9 @@ async function startGame(gameID, canStart) {
         increase: scoreIncrease,
       },
     });
-    console.log(row.time_limit - timeSpent / 1000 + 2);
+
     await waitWithTimeout((row.time_limit - timeSpent / 1000 + 2) * 1000);
-    console.log("done awaiting");
+
     if (
       scores.length > row.users_in_game.length &&
       i != row.number_of_problems - 1
