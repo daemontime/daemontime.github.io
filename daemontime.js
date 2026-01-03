@@ -30,6 +30,11 @@ document.getElementById("guestButton").addEventListener("click", async () => {
           .select("handle")
           .eq("uuid", currentUser.id);
         userHandle = data[0].handle;
+
+        const { data: data2, error: error2 } = await supabaseClient
+          .from("profiles")
+          .update({ in_game: null })
+          .eq("uuid", currentUser.id);
         lobby();
         return;
       }
@@ -68,6 +73,10 @@ document
           .select("handle")
           .eq("uuid", currentUser.id);
         userHandle = data[0].handle;
+        const { data: data2, error: error2 } = await supabaseClient
+          .from("profiles")
+          .update({ in_game: null })
+          .eq("uuid", currentUser.id);
         lobby();
         return;
       }
@@ -117,6 +126,11 @@ document
           .from("profiles")
           .insert({ uuid: currentUser.id, handle: handle });
         userHandle = handle;
+
+        const { data: data2, error: error2 } = await supabaseClient
+          .from("profiles")
+          .update({ in_game: null })
+          .eq("uuid", currentUser.id);
         lobby();
         return;
       }
@@ -158,14 +172,12 @@ document.getElementById("newGame").addEventListener("click", async () => {
   const { data: questionData, error: questionError } = await supabaseClient
     .from("questions")
     .select("id");
-  console.log(questionData);
   let numMath = 0;
   let numEnglish = 0;
   for (let i = 0; i < questionData.length; i++) {
     if (questionData[i].id > 1999999) numEnglish++;
     else numMath++;
   }
-  console.log(numMath + " " + numEnglish);
   for (let i = 0; i < number_of_problems; i++) {
     let a = Math.floor(Math.random() * 2) + 1;
     let b = a * 1000000;
@@ -247,7 +259,6 @@ document
           handle: userHandle,
         },
       });
-      console.log("sent");
     } else {
       lobbyMessagesChannel.send({
         type: "broadcast",
@@ -269,7 +280,6 @@ let gameMessages = [];*/
 function addLobbyMessage(newMessage, handle, isLobby) {
   if (newMessage != undefined) {
     let messages;
-    console.log("add");
     if (isLobby) messages = document.getElementById("lobbyMessages");
     else messages = document.getElementById("inGameMessages");
     const div = document.createElement("div");
@@ -510,7 +520,6 @@ async function joinGame(gameID) {
     .channel("inGameMessages", { config: { broadcast: { self: true } } })
     .on("broadcast", { event: "ingame_message_sent" + gameID }, (payload) => {
       addLobbyMessage(payload.payload.text, payload.payload.handle, false);
-      console.log("received");
     })
     .subscribe();
   inGame = true;
@@ -609,17 +618,33 @@ async function startGame(gameID, canStart) {
       let rank = i + 1;
       floorScore = Math.floor(scores[i][1] * 1000) / 1000;
       floorIncrease = Math.floor(scores[i][2] * 1000) / 1000;
-      scoresDisplay +=
-        "<p>" +
-        rank +
-        ". " +
-        scores[i][0] +
-        ": " +
-        floorScore +
-        " pts (+" +
-        floorIncrease +
-        ")";
-      ("</p>");
+      let add = "";
+      if (userHandle == scores[i][0]) {
+        add =
+          "<p style='font-weight:bold;'>" +
+          rank +
+          ". " +
+          scores[i][0] +
+          ": " +
+          floorScore +
+          " pts (+" +
+          floorIncrease +
+          ")";
+        ("</p>");
+      } else {
+        add =
+          "<p>" +
+          rank +
+          ". " +
+          scores[i][0] +
+          ": " +
+          floorScore +
+          " pts (+" +
+          floorIncrease +
+          ")";
+        ("</p>");
+      }
+      scoresDisplay += add;
     }
     scoresDisplay += "</div>";
     document.getElementById("scores").innerHTML = scoresDisplay;
@@ -656,11 +681,15 @@ async function startGame(gameID, canStart) {
     )
     .subscribe();
 
-  function waitForAllDone(newScores) {
+  function waitForAllDone(ms) {
     return new Promise(async (resolve) => {
+      let i = 0;
       while (scores.length < row.users_in_game.length) {
         await wait(10); // one runs while the other says waiting and then switch because wait(1000)
         // it takes less than a second for
+        i++;
+        console.log(0);
+        if (i > ms / 10) break;
       }
       if (scores.length > row.users_in_game.length) {
         newScores = scores.slice(row.users_in_game.length, scores.length);
@@ -671,7 +700,7 @@ async function startGame(gameID, canStart) {
   }
   async function waitWithTimeout(ms) {
     return Promise.race([
-      waitForAllDone(),
+      waitForAllDone(ms),
       new Promise((resolve) => setTimeout(ms)),
     ]);
   }
@@ -711,17 +740,18 @@ async function startGame(gameID, canStart) {
     document.getElementById("gameQuestion").innerHTML =
       "<div>Waiting for others...</div>";
     document.getElementById("gameQuestion").style.display = "block";
-    const timeSpent = timestamp[1] - timestamp[0];
+    let timeSpent = 0;
     let answer = "";
     let scoreIncrease = 0;
     if (result == "submitted") {
+      timeSpent = timestamp[1] - timestamp[0];
       answer = getAnswerArr[0];
       if (answer == questionRow.answer) {
         scoreIncrease = 1.2 * row.time_limit - timeSpent / 1000;
         score += scoreIncrease;
         //score = Math.round(score * 1000) / 1000; // round to nearest thousandth
       }
-    }
+    } else timeSpent = row.time_limit;
     answerArr.push(answer);
     let last = false;
     if (scores.length == row.users_in_game.length - 1) last = true;
@@ -735,9 +765,9 @@ async function startGame(gameID, canStart) {
         increase: scoreIncrease,
       },
     });
-
-    await waitWithTimeout((row.time_limit - timeSpent + 2) * 1000);
-
+    console.log(row.time_limit - timeSpent / 1000 + 2);
+    await waitWithTimeout((row.time_limit - timeSpent / 1000 + 2) * 1000);
+    console.log("done awaiting");
     if (
       scores.length > row.users_in_game.length &&
       i != row.number_of_problems - 1
@@ -771,21 +801,24 @@ async function startGame(gameID, canStart) {
   let divisors = 0;
 
   for (let i = 0; i < ratings.length; i++) {
-    let diff =
+    let diffOne =
       Math.pow(Math.abs(ratings[i] - ratings[ratingIndex] - 300), 1.5) / 400;
+    let diffTwo = 33 - diffOne;
     if (ratingIndex > i) {
       if (
         ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        ratingChange -= diff; // chec k += -= ++ --
+        if (ratings[ratingIndex] < ratings[i]) ratingChange -= diffTwo;
+        else ratingChange -= diffOne;
       }
     } else if (ratingIndex < i) {
       if (
         ratings[ratingIndex] - ratings[i] <= 250 &&
         scores[ratingIndex][1] != scores[i][1]
       ) {
-        ratingChange += diff;
+        if (ratings[ratingIndex] < ratings[i]) ratingChange += diffOne;
+        else ratingChange += diffTwo;
       }
     } else divisors--;
     divisors++;
@@ -882,7 +915,6 @@ async function startGame(gameID, canStart) {
     .from("currentGames")
     .delete()
     .eq("game_id", row.game_id);
-  console.log(inGameMessagesChannel);
 }
 
 document
