@@ -83,7 +83,7 @@ input {
   margin: auto;
   overflow-y: auto;
   position: relative;
-  border: 10px solid blue;
+  border: 5px solid rgb(77, 77, 77);
   border-bottom: 0px;
 }
 
@@ -216,7 +216,7 @@ input {
   width: 850px;
   height: 141px;
   margin: auto;
-  border: 10px solid blue;
+  border: 5px solid rgb(77, 77, 77);
   border-top: 2px solid red;
 }
 
