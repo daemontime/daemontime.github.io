@@ -235,29 +235,7 @@ document.getElementById("newGame").addEventListener("click", async () => {
     joinGame(data[0].game_id);
   }
 });
-/*
-let chatOn = true;
 
-document
-  .getElementById("chatToggleButton")
-  .addEventListener("click", async () => {
-    if (chatOn) {
-      chatOn = false;
-      document.getElementById("gameBox").style.height = "541px";
-      document.getElementById("messageBox").style.display = "none";
-      document.getElementById("lobbyMessages").style.display = "none";
-      document.getElementById("lobbyMessageForm").style.display = "none";
-      document.getElementById("gameBox").style.borderBottom = "2px solid black";
-    } else {
-      chatOn = true;
-      document.getElementById("gameBox").style.height = "400px";
-      document.getElementById("messageBox").style.display = "block";
-      document.getElementById("lobbyMessages").style.display = "block";
-      document.getElementById("lobbyMessageForm").style.display = "block";
-      document.getElementById("gameBox").style.borderBottom = "0px";
-    }
-  });
-*/
 const lobbyMessagesChannel = supabaseClient
   .channel("lobbyMessages", { config: { broadcast: { self: true } } })
   .on("broadcast", { event: "lobby_message_sent" }, (payload) => {
@@ -331,7 +309,11 @@ const currentGamesChannel = supabaseClient
 
 // make this faster
 async function showCurrentGames(isCreate) {
-  const { data, error } = await supabaseClient.from("currentGames").select("*");
+  const { data, error } = await supabaseClient
+    .from("currentGames")
+    .select("*")
+    .order("time_created");
+  console.log(data);
   for (let i = 0; i < data.length; i++) {
     flag = false;
     for (let j = 0; j < data[i].users_in_game.length; j++) {
