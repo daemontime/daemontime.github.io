@@ -21,6 +21,10 @@ button,
 input {
   border-radius: 0px;
 }
+/*
+form button {
+  color: aqua;
+}*/
 
 .signinButtons {
   display: flex;
@@ -124,7 +128,12 @@ input {
   text-align: center;
   border: 2px;
   border-radius: 10px;
+  transition-duration: 0.5s;
 }
+/*
+#currentGamesTable td:hover {
+  font-size: 10px;
+}*/
 
 .joinGameButton {
   box-shadow: none;

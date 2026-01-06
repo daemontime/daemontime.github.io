@@ -330,6 +330,7 @@ async function showCurrentGames(isCreate) {
           .from("profiles")
           .select("*")
           .eq("uuid", data[i].users_in_game[j]);
+        console.log("here");
         let userHandle = data2[0].handle;
         if (userHandle.length > 14)
           userHandle = userHandle.slice(0, 14) + "...";
@@ -693,11 +694,13 @@ async function startGame(gameID, canStart) {
   function waitForAllDone(ms) {
     return new Promise(async (resolve) => {
       let i = 0;
+      let start = Date.now();
       while (scores.length < row.users_in_game.length) {
+        // only works if user is always on tab
         await wait(10); // one runs while the other says waiting and then switch because wait(1000)
         // it takes less than a second for
         i++;
-        if (i > ms / 10) break;
+        if (Date.now() - start > ms) break;
       }
       if (scores.length > row.users_in_game.length) {
         newScores = scores.slice(row.users_in_game.length, scores.length);
@@ -746,7 +749,7 @@ async function startGame(gameID, canStart) {
     ); // ms to s, +1 to account for time to call backend
     document.getElementById("answerForm").style.display = "none";
     document.getElementById("gameQuestion").innerHTML =
-      "<div>Waiting for others...</div>";
+      "<div>Waiting for others...<br/>DON'T LEAVE THIS PAGE. You may end up getting errors if you do.</div>";
     document.getElementById("gameQuestion").style.display = "block";
     let timeSpent = 0;
     let answer = "";
