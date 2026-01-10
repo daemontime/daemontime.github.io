@@ -169,12 +169,21 @@ input {
   border-radius: 10px;
   transition-duration: 0.5s;
   height: 100px; /*background: linear-gradient(135deg, #cfd3fd, #8388e9);*/
-  background: linear-gradient(
+  /*background: linear-gradient(
     to bottom,
     #cfd3fd 0%,
     #cfd3fd 66.66666%,
     #8388e9 66.66666%,
     #8388e9 100%
+  );*/
+  background: linear-gradient(
+    to bottom,
+    #f9c4c4 0%,
+    #ff4f4f 33.33333%,
+    #ffffff 33.33333%,
+    #ffffff 66.66666%,
+    #8388e9 66.66666%,
+    #2732ff 100%
   );
   color: black;
   padding: 0;
