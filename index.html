@@ -16,51 +16,57 @@
         <button id="startLoginButton">Login</button>
         <button id="startSignupButton">Signup</button>
       </div>
-      <br />
+      <br /><br />
       <div id="signInUpError">Error</div>
       <form id="loginForm">
+        <label for="loginEmail">Email</label><br />
         <input
           type="email"
           id="loginEmail"
           placeholder="Email"
           required
         /><br />
+        <label for="loginPassword">Password</label><br />
         <input
           type="password"
           id="loginPassword"
           placeholder="Password"
           required
-        /><br />
+        /><br /><br />
         <button type="submit" id="loginSubmitButton">Login</button><br />
-        <button type="button" id="loginBackButton">Back</button><br />
+        <button type="button" id="loginBackButton">Back</button>
       </form>
       <form id="signupForm">
+        <label for="signupEmail">Email</label><br />
         <input
           type="email"
           id="signupEmail"
           placeholder="Email"
           required
         /><br />
+        <label for="signupHandle">Handle</label><br />
         <input
           type="text"
           id="signupHandle"
           placeholder="In-game handle"
           required
         /><br />
+        <label for="signupPassword">Password</label><br />
         <input
           type="password"
           id="signupPassword"
           placeholder="Password (Min. length: 6)"
           required
-        /><br />
+        /><br /><br />
         <button type="submit" id="signupSubmitButton">Sign Up</button><br />
-        <button type="button" id="signupBackButton">Back</button><br />
+        <button type="button" id="signupBackButton">Back</button>
       </form>
+      <img src="wikipedia_throbber.gif" alt="throbber" id="throbber" />
       <br />
     </div>
     <div id="game">
       <p id="stats">
-        2 User accounts created, 68 guest accounts created, 54 games played
+        4 User accounts created, 71 guest accounts created, 54 games played
       </p>
       <!--9/6-->
       <div id="gameBox">

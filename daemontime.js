@@ -1,6 +1,3 @@
-//import { createClient } from "@supabase/supabase-js";
-//import { v4 as uuidv4 } from "uuid";
-
 const supabaseURL = "https://kygyugvojbzawohswyuv.supabase.co";
 const supabaseKey = "sb_publishable_sUbdY8ajIle7wiV3MuHm5Q_VHQ-Kxw_";
 const supabaseClient = supabase.createClient(supabaseURL, supabaseKey);
@@ -14,6 +11,7 @@ function wait(ms) {
 
 document.getElementById("guestButton").addEventListener("click", async () => {
   const { data, error } = await supabaseClient.auth.signInAnonymously();
+  document.getElementById("throbber").style.display = "block";
   if (!error) {
     const {
       data: { user },
@@ -49,6 +47,7 @@ document.getElementById("guestButton").addEventListener("click", async () => {
       }
     }
   }
+  document.getElementById("throbber").style.display = "none";
   document.getElementById("signInUpError").style.display = "block";
 });
 
@@ -64,6 +63,7 @@ document
   .getElementById("loginForm")
   .addEventListener("submit", async (event) => {
     event.preventDefault();
+    document.getElementById("throbber").style.display = "block";
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
     const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -99,6 +99,7 @@ document
         return;
       }
     }
+    document.getElementById("throbber").style.display = "none";
     document.getElementById("signInUpError").style.display = "block";
   });
 
@@ -123,6 +124,7 @@ document
   .getElementById("signupForm")
   .addEventListener("submit", async (event) => {
     event.preventDefault();
+    document.getElementById("throbber").style.display = "block";
     const email = document.getElementById("signupEmail").value;
     const password = document.getElementById("signupPassword").value;
     const handle = document.getElementById("signupHandle").value;
@@ -161,6 +163,7 @@ document
         lobby();
         return;
       }
+      document.getElementById("throbber").style.display = "none";
     } else document.getElementById("signInUpError").style.display = "block";
   });
 
@@ -173,7 +176,8 @@ document
     document.getElementById("signinButtons").style.display = "block";
   });
 
-const gameColors = [
+const gameColors = [["rgb(165, 42, 42)"]];
+/*[
   ["Aqua", "black"],
   ["Blueviolet", "white"],
   ["Cadetblue", "white"],
@@ -184,16 +188,15 @@ const gameColors = [
   ["Indigo", "white"],
   ["Lavender", "black"],
   ["Lemonchiffon", "black"],
-  ["Lightgreen", "black"],
   ["Mistyrose", "black"],
   ["Orange", "black"],
   ["Seagreen", "white"],
   ["Yellowgreen", "black"],
-];
+];*/
 
 document.getElementById("newGame").addEventListener("click", async () => {
   document.getElementById("lobby").style.display = "none";
-  const number_of_problems = 10;
+  const number_of_problems = 5;
   const time_limit = 45;
   let questions = [];
   const { data: questionData, error: questionError } = await supabaseClient
@@ -348,30 +351,23 @@ async function showCurrentGames(isCreate) {
     for (let j = 0; j < 4; j++) {
       if (i * 4 + j < data.length) {
         let row = data[i * 4 + j];
-        const [bg, text] = gameColors[row.colorIndex];
-        const borderColor = text == "black" ? "gray" : "white";
-        table += `<td style="background-color:${bg}; color:${text}; border: solid ${borderColor}">`;
-        table += "# players: " + row.users_in_game.length;
+        table += `<td>`;
+        table += "<div id='joinTop'># players: " + row.users_in_game.length;
         let hostHandle = row.host_handle;
         if (hostHandle.length > 10)
           hostHandle =
             hostHandle.substring(0, Math.min(10, hostHandle.length - 3)) +
             "...";
         table += "<br></br>Host: " + hostHandle;
-        if (row.has_started) {
-          table += "<br></br>Game started";
-        } else {
-          table +=
-            '<br></br><button class="joinGameButton" id="' + row.game_id + '" ';
-          const color = text === "black" ? "white" : "black";
-          table += `style="background-color:${text}; color:${color}"`;
+        table += "<br></br>Game started</div><div id='joinBottom'>";
+        if (!row.has_started) {
+          table += '<button class="joinGameButton" id="' + row.game_id + '" ';
           table += ">";
-          table += "&#8658;</button>";
+          table += "&#8658;</button></div>";
         }
       } else {
-        table += "<td style='border:0px'>";
-        table += "&nbsp";
-      }
+        table += "<td style='display: none'>";
+      } // should i get rid of else and make it look like aops
       table += "</td>";
     }
     table += "</tr>";
@@ -379,8 +375,6 @@ async function showCurrentGames(isCreate) {
   table += "</table>";
   const currentGamesTable = document.getElementById("currentGamesTable");
   currentGamesTable.innerHTML = table;
-
-  //document.getElementById("currentGamesTable").style.display = "block";
 }
 
 document.addEventListener("click", async (event) => {
@@ -414,6 +408,7 @@ document.addEventListener("click", async (event) => {
 function lobby() {
   inGame = false;
   inGameMessagesChannel = null;
+  document.getElementById("throbber").style.display = "none";
   document.getElementById("lobbyMessages").style.display = "block";
   document.getElementById("inGameMessages").style.display = "none";
   document.getElementById("loginOverlay").style.display = "none";
@@ -506,7 +501,6 @@ document
           .select("host_id")
           .eq("game_id", gameID);
         if (data6[0].host_id == currentUser.id) {
-          // wrong?
           const { data: data7, error: error7 } = await supabaseClient
             .from("profiles")
             .select("handle")
@@ -610,7 +604,6 @@ async function startGame(gameID, canStart) {
           document.getElementById("answerForm").style.display = "none";
           document.getElementById("gameQuestion").style.display = "none";
           resolve("submitted");
-          // check answer ( can you put this after resolve? or does it have to go before)
         },
         { once: true }
       );
@@ -863,6 +856,8 @@ async function startGame(gameID, canStart) {
     "    Correct answer: " +
     questionRowArr[0].answer +
     "</pre></div>";
+  color = answerArr[index] == questionRowArr[index].answer ? "green" : "red";
+  document.getElementById("gameQuestion").style.border = "5px solid " + color;
   document.getElementById("gameQuestion").style.marginTop = "10px";
   document.getElementById("gameQuestion").style.fontSize = "13px";
   document.getElementById("gameQuestion").style.display = "block";
@@ -882,6 +877,8 @@ async function startGame(gameID, canStart) {
       "    Correct answer: " +
       questionRowArr[index].answer +
       "</pre></div>";
+    color = answerArr[index] == questionRowArr[index].answer ? "green" : "red";
+    document.getElementById("gameQuestion").style.border = "5px solid " + color;
   }
 
   function questionBack() {
@@ -897,6 +894,8 @@ async function startGame(gameID, canStart) {
       "    Correct answer: " +
       questionRowArr[index].answer +
       "</pre></div>";
+    color = answerArr[index] == questionRowArr[index].answer ? "green" : "red";
+    document.getElementById("gameQuestion").style.border = "5px solid " + color;
   }
   document
     .getElementById("forwardArrowQuestionButton")
