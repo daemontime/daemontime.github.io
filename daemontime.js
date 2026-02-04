@@ -386,7 +386,10 @@ function addGameHover() {
     let td = div.closest("td");
     console.log("a");
     let button = td.querySelector(".joinGameButton");
+    // doesn't add hover functionality if game started
+    // which iff button doesn't exist
     if (!button) return;
+
     let gameID = button.id;
     let row = null;
     for (let i = 0; i < curGamesData.length; i++) {
@@ -401,7 +404,7 @@ function addGameHover() {
       let top = td.querySelector(".joinTop");
       if (top) {
         str =
-          "<div class='joinTop gameCell'># problems:" + row.number_of_problems;
+          "<div class='joinTop gameCell'># problems: " + row.number_of_problems;
         str += "<br></br>Time limit: " + row.time_limit + "s";
         str += "<br></br>Game started</div>";
         top.innerHTML = str;
@@ -423,6 +426,13 @@ function addGameHover() {
         str += "<br></br>Game started</div>";
         top.innerHTML = str;
       }
+    });
+    button.addEventListener("mouseenter", () => {
+      div.dispatchEvent(new Event("mouseenter"));
+    });
+
+    button.addEventListener("mouseleave", () => {
+      div.dispatchEvent(new Event("mouseleave"));
     });
   });
 }
