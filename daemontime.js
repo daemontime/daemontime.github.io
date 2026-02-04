@@ -451,6 +451,7 @@ document
     document.getElementById("forwardArrowQuestionButton").style.display =
       "none";
     document.getElementById("backArrowQuestionButton").style.display = "none";
+    document.getElementById("throbber").style.display = "block";
 
     try {
       supabaseClient.removeChannel(checkInGameChannel);
