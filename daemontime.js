@@ -306,17 +306,18 @@ const currentGamesChannel = supabaseClient
     { event: "*", schema: "public", table: "currentGames" },
     (payload) => {
       showCurrentGames(false);
-    }
+    },
   )
   .subscribe(); // change to only update when # users change or game addition/deletion?
 
+let curGamesData = null;
 // make this faster
 async function showCurrentGames(isCreate) {
   const { data, error } = await supabaseClient
     .from("currentGames")
     .select("*")
     .order("time_created");
-  console.log(data);
+  curGamesData = data;
   for (let i = 0; i < data.length; i++) {
     flag = false;
     for (let j = 0; j < data[i].users_in_game.length; j++) {
@@ -352,14 +353,16 @@ async function showCurrentGames(isCreate) {
       if (i * 4 + j < data.length) {
         let row = data[i * 4 + j];
         table += `<td>`;
-        table += "<div id='joinTop'># players: " + row.users_in_game.length;
+        table +=
+          "<div class='joinTop gameCell'># players: " +
+          row.users_in_game.length;
         let hostHandle = row.host_handle;
         if (hostHandle.length > 10)
           hostHandle =
             hostHandle.substring(0, Math.min(10, hostHandle.length - 3)) +
             "...";
         table += "<br></br>Host: " + hostHandle;
-        table += "<br></br>Game started</div><div id='joinBottom'>";
+        table += "<br></br>Game started</div><div class='joinBottom'>";
         if (!row.has_started) {
           table += '<button class="joinGameButton" id="' + row.game_id + '" ';
           table += ">";
@@ -375,6 +378,53 @@ async function showCurrentGames(isCreate) {
   table += "</table>";
   const currentGamesTable = document.getElementById("currentGamesTable");
   currentGamesTable.innerHTML = table;
+  addGameHover();
+}
+function addGameHover() {
+  console.log("b");
+  document.querySelectorAll(".gameCell").forEach((div) => {
+    let td = div.closest("td");
+    console.log("a");
+    let button = td.querySelector(".joinGameButton");
+    if (!button) return;
+    let gameID = button.id;
+    let row = null;
+    for (let i = 0; i < curGamesData.length; i++) {
+      if (curGamesData[i].game_id == gameID) {
+        row = curGamesData[i];
+        break;
+      }
+    }
+    if (row == null) return;
+    div.addEventListener("mouseenter", function () {
+      console.log("mouseenter");
+      let top = td.querySelector(".joinTop");
+      if (top) {
+        str =
+          "<div class='joinTop gameCell'># problems:" + row.number_of_problems;
+        str += "<br></br>Time limit: " + row.time_limit + "s";
+        str += "<br></br>Game started</div>";
+        top.innerHTML = str;
+      }
+    });
+
+    div.addEventListener("mouseleave", function () {
+      let top = td.querySelector(".joinTop");
+      if (top) {
+        let str =
+          "<div class='joinTop gameCell'># players: " +
+          row.users_in_game.length;
+        let hostHandle = row.host_handle;
+        if (hostHandle.length > 10)
+          hostHandle =
+            hostHandle.substring(0, Math.min(10, hostHandle.length - 3)) +
+            "...";
+        str += "<br></br>Host: " + hostHandle;
+        str += "<br></br>Game started</div>";
+        top.innerHTML = str;
+      }
+    });
+  });
 }
 
 document.addEventListener("click", async (event) => {
@@ -544,7 +594,7 @@ async function joinGame(gameID) {
       (payload) => {
         supabaseClient.removeChannel(checkInGameChannel);
         startGame(gameID);
-      }
+      },
     )
     .subscribe();
 }
@@ -606,7 +656,7 @@ async function startGame(gameID, canStart) {
           document.getElementById("gameQuestion").style.display = "none";
           resolve("submitted");
         },
-        { once: true }
+        { once: true },
       );
       setTimeout(() => resolve("timeout"), ms);
     });
@@ -681,7 +731,7 @@ async function startGame(gameID, canStart) {
             payload.payload.increase,
           ]);
         }
-      }
+      },
     )
     .subscribe();
 
@@ -739,7 +789,7 @@ async function startGame(gameID, canStart) {
     const result = await waitForInput(
       (row.time_limit + 0.5) * 1000, //change it to smaller?
       timestamp,
-      getAnswerArr
+      getAnswerArr,
     ); // ms to s, +1 to account for time to call backend
     document.getElementById("answerForm").style.display = "none";
     document.getElementById("gameQuestion").innerHTML =

@@ -189,7 +189,7 @@ input {
   padding: 0;
 }
 
-#currentGamesTable td #joinTop {
+#currentGamesTable td .joinTop {
   height: 66.66666%;
   display: flex;
   text-align: center;
@@ -197,7 +197,7 @@ input {
   align-items: center;
 }
 
-#currentGamesTable td #joinBottom {
+#currentGamesTable td .joinBottom {
   margin: 0;
   padding: 0;
   position: absolute;
