@@ -17,6 +17,10 @@ button {
   transition-duration: 0.3s;
 }
 
+button:hover {
+  cursor: pointer;
+}
+
 #throbber {
   display: none;
   height: 50px;
@@ -81,7 +85,6 @@ form button {
 #loginSubmitButton:hover,
 #signupSubmitButton:hover {
   background-color: #34bd39;
-  cursor: pointer;
 }
 
 #guestButton:hover,
@@ -91,7 +94,6 @@ form button {
 #signupBackButton:hover {
   background-color: black;
   color: white;
-  cursor: pointer;
 }
 
 #signInUpError {
@@ -119,7 +121,7 @@ input {
 }
 
 #gameBox {
-  background-color: black;
+  background-color: #f6f2d9;
   color: white;
   width: 850px;
   height: 400px;
@@ -150,7 +152,6 @@ input {
 #newGame:hover {
   background-color: #00cf07; /*still weird*/
   color: white;
-  cursor: pointer;
   font-size: 15px;
 }
 
@@ -178,10 +179,8 @@ input {
   );*/
   background: linear-gradient(
     to bottom,
-    #f9c4c4 0%,
-    #ff4f4f 33.33333%,
-    #ffffff 33.33333%,
-    #ffffff 66.66666%,
+    #b9b08b 0%,
+    #ffe358 66.66666%,
     #8388e9 66.66666%,
     #2732ff 100%
   );
@@ -224,8 +223,7 @@ input {
 
 .joinGameButton:hover {
   background-color: #45a049 !important; /* Darker green for hover effect */
-  cursor: pointer; /*transform: scale(1.05); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);*/
-  font-size: 24px;
+  font-size: 20px;
 }
 /*
 #chatToggleButton {
@@ -233,7 +231,6 @@ input {
   border: none;
   outline: none;
   background-color: white;
-  cursor: pointer;
 }
 
 #chatToggleButton:hover {
@@ -268,7 +265,6 @@ input {
 #leaveGameButton:hover {
   background-color: rgb(200, 0, 0);
   color: white;
-  cursor: pointer;
 }
 
 #startGameButton {
@@ -292,7 +288,6 @@ input {
 }
 
 #startGameButton:hover {
-  cursor: pointer;
   background-color: rgb(0, 200, 0);
 }
 
@@ -358,7 +353,6 @@ input {
 #forwardArrowQuestionButton:hover {
   background-color: white;
   color: black;
-  cursor: pointer;
 }
 
 #backArrowQuestionButton {
@@ -375,11 +369,14 @@ input {
 #backArrowQuestionButton:hover {
   background-color: white;
   color: black;
-  cursor: pointer;
 }
 
-#submitQuestionToDatabase {
+#proposeQuestionToDatabase {
   display: none;
+}
+
+#proposeQuestionButton {
+  background-color: white;
 }
 
 #questionSubmitThanks {
@@ -388,6 +385,10 @@ input {
 
 #submitBugOrFeedback {
   display: none;
+}
+
+#submitBugFeedbackButton {
+  background-color: white;
 }
 
 #bugFeedbackThanks {
