@@ -1,3 +1,5 @@
+/** doesn't work if two tabs open in the same window? */
+
 const supabaseURL = "https://kygyugvojbzawohswyuv.supabase.co";
 const supabaseKey = "sb_publishable_sUbdY8ajIle7wiV3MuHm5Q_VHQ-Kxw_";
 const supabaseClient = supabase.createClient(supabaseURL, supabaseKey);
@@ -476,7 +478,7 @@ function lobby() {
   document.getElementById("messageBox").style.display = "block";
   document.getElementById("newGame").style.display = "block";
   document.getElementById("lobby").style.display = "block";
-  document.getElementById("submitQuestionToDatabase").style.display = "block";
+  document.getElementById("proposeQuestionToDatabase").style.display = "block";
   document.getElementById("submitBugOrFeedback").style.display = "block";
   document.getElementById("inGame").style.display = "none";
   document.getElementById("startedGame").style.display = "none";
@@ -489,7 +491,7 @@ function lobby() {
   document.getElementById("startGameButton").style.display = "none";
   document.getElementById("forwardArrowQuestionButton").style.display = "none";
   document.getElementById("backArrowQuestionButton").style.display = "none";
-  document.getElementById("submitQuestionToDatabase").style.display = "block";
+  document.getElementById("proposeQuestionToDatabase").style.display = "block";
 
   hostingGameID = null;
   showCurrentGames(false);
@@ -989,7 +991,7 @@ async function startGame(gameID, canStart) {
 }
 
 document
-  .getElementById("submitQuestionForm")
+  .getElementById("proposeQuestionForm")
   .addEventListener("submit", async (event) => {
     event.preventDefault();
     const { data, error } = await supabaseClient
